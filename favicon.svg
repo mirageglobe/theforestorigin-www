@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- ember seal with three rising lines of smoke -->
+  <rect width="64" height="64" rx="10" fill="#a8472a"/>
+  <g fill="none" stroke="#f7f3ea" stroke-width="3" stroke-linecap="round">
+    <path d="M24 50 C20 40 28 34 24 24 S28 14 26 10"/>
+    <path d="M32 50 C28 40 36 34 32 24 S36 14 34 10"/>
+    <path d="M40 50 C36 40 44 34 40 24 S44 14 42 10"/>
+  </g>
+</svg>
