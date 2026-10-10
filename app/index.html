@@ -1,0 +1,2027 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>the forest origin app prototype</title>
+<style>
+/* base look for generated html in this hat: fonts, text, titles, backgrounds, colour tokens. dark only. from weekly-brain-optimisation/audit.html.
+   components (cards, pills, tables) are not here; each generator builds its own from these tokens. inline into each output; falls back to system fonts offline. */
+
+
+:root {
+  /* backgrounds and lines */
+  --bg: #15171a; --surface: #1c1f22; --surface-2: #23262a; --border: #33363b;
+  /* text */
+  --text: #eae8e2; --text-dim: #9b988f;
+  /* status colours, each with a soft background tint */
+  --accent: #5fb39d; --accent-soft: rgba(95, 179, 157, 0.14);
+  --amber: #d9a94e; --amber-soft: rgba(217, 169, 78, 0.14);
+  --red: #e5877c; --red-soft: rgba(229, 135, 124, 0.14);
+  --blue: #7fb0e8; --blue-soft: rgba(127, 176, 232, 0.14);
+  /* fonts */
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.55; padding-inline: 20px; }
+.page { max-width: 720px; margin: 0 auto; padding-block: 48px 64px; display: flex; flex-direction: column; gap: 36px; }
+section { display: flex; flex-direction: column; gap: 14px; }
+p { margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.9em; }
+
+/* title block: eyebrow, h1, dek */
+.eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 6px 0 8px; font-weight: 600; text-wrap: balance; letter-spacing: -0.01em; }
+.dek { color: var(--text-dim); font-size: 0.98rem; max-width: 60ch; }
+
+/* section title: mono caps with a rule */
+.section-title { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); display: flex; align-items: baseline; gap: 10px; }
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.mut { color: var(--text-dim); font-size: 0.9rem; }
+footer { font-family: var(--mono); font-size: 0.74rem; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 16px; }
+
+/* components for this report (built from the base tokens) */
+.cjk { font-family: 'Noto Serif SC', 'Songti SC', serif; }
+.pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pillar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 8px; text-align: center; }
+.pillar.now { border-color: var(--amber); background: var(--amber-soft); }
+.pillar .glyph { font-size: 2rem; line-height: 1.25; }
+.pillar .lbl { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-top: 8px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.big { font-size: 1.5rem; font-weight: 600; }
+.hours { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.hour { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.hour.now { outline: 2px solid var(--amber); }
+.hour .t { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); }
+.pill { font-family: var(--mono); font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; width: fit-content; }
+.pill.auspicious { color: var(--accent); background: var(--accent-soft); }
+.pill.neutral { color: var(--blue); background: var(--blue-soft); }
+.pill.inauspicious { color: var(--red); background: var(--red-soft); }
+.tag { font-size: 0.75rem; color: var(--amber); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.zodiac { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+/* relation colours: extra tokens beyond the base (violet, orange) for 刑 and 害 */
+:root { --violet: #b394e0; --violet-soft: rgba(179, 148, 224, 0.14); --orange: #e0955a; --orange-soft: rgba(224, 149, 90, 0.14); }
+.z { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; border: 1px solid var(--border); border-radius: 6px; min-height: 84px; }
+.z .zc { font-size: 1.5rem; line-height: 1.1; }
+.z .zb { font-size: 0.8rem; color: var(--text-dim); }
+.badges { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; min-height: 1.2rem; }
+.bd { font-style: normal; font-family: 'Noto Serif SC', 'Songti SC', serif; font-size: 0.7rem; padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; }
+.bd.self, .z.self { color: var(--amber); }
+.bd.clash, .z.clash { color: var(--red); }
+.bd.harmony, .z.harmony { color: var(--accent); }
+.bd.harm, .z.harm { color: var(--orange); }
+.bd.punish, .z.punish { color: var(--violet); }
+.bd.break, .z.break { color: var(--blue); }
+.z.self { background: var(--amber-soft); border-color: var(--amber); }
+.z.clash { background: var(--red-soft); border-color: var(--red); }
+.z.harmony { background: var(--accent-soft); border-color: var(--accent); }
+.z.harm { background: var(--orange-soft); border-color: var(--orange); }
+.z.punish { background: var(--violet-soft); border-color: var(--violet); }
+.z.break { background: var(--blue-soft); border-color: var(--blue); }
+.z.neutral { color: var(--text-dim); opacity: 0.55; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; font-size: 0.8rem; color: var(--text-dim); }
+.lg { display: inline-flex; gap: 6px; align-items: center; }
+.fest { display: flex; gap: 10px; align-items: baseline; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.controls button, .controls input { font: inherit; font-family: var(--mono); font-size: 0.8rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.controls button:hover { border-color: var(--accent); }
+.hour { cursor: pointer; }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); }
+.tabs button { font: inherit; font-family: var(--mono); font-size: 0.85rem; color: var(--text-dim); background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 14px; cursor: pointer; }
+.tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+[hidden] { display: none !important; }
+.datebar { display: flex; flex-direction: column; gap: 8px; }
+.datebar .controls { display: grid; grid-template-columns: auto 1fr auto; }
+.datebar .controls input { text-align: center; }
+.today { width: 100%; font-family: var(--mono); font-size: 0.8rem; padding: 6px 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.today:hover { border-color: var(--accent); color: var(--accent); }
+.ct { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.ct .cn { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+.ct .en { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.ct .chip { font-size: 0.95rem; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); }
+.yj { display: inline-flex; gap: 6px; align-items: baseline; padding: 2px 8px; margin: 2px 6px 2px 0; border: 1px solid currentColor; border-radius: 4px; }
+.yj small { color: var(--text-dim); font-size: 0.75rem; }
+.yj.yi { color: var(--accent); background: var(--accent-soft); }
+.yj.ji { color: var(--red); background: var(--red-soft); }
+.part { font-size: 1.15rem; font-weight: 600; margin: 12px 0 0; padding-top: 24px; border-top: 1px solid var(--border); }
+#who { min-width: 10rem; }
+.people { display: flex; flex-wrap: wrap; gap: 8px; }
+.person { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.person button { font: inherit; font-size: 0.8rem; color: var(--text); background: var(--surface); border: 0; padding: 6px 10px; cursor: pointer; }
+.person button + button { color: var(--text-dim); border-left: 1px solid var(--border); }
+:root[data-theme="light"] {
+  --bg: #f5f3ee; --surface: #ffffff; --surface-2: #ece8df; --border: #d6d0c4;
+  --text: #1f2124; --text-dim: #5f5b53;
+  --accent: #1a6b57; --accent-soft: rgba(26, 107, 87, 0.14);
+  --amber: #7f5206; --amber-soft: rgba(127, 82, 6, 0.14);
+  --red: #ad362b; --red-soft: rgba(173, 54, 43, 0.14);
+  --blue: #2260a0; --blue-soft: rgba(34, 96, 160, 0.14);
+  --violet: #6a40ad; --violet-soft: rgba(106, 64, 173, 0.14);
+  --orange: #984f0e; --orange-soft: rgba(152, 79, 14, 0.14);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+  --bg: #f5f3ee; --surface: #ffffff; --surface-2: #ece8df; --border: #d6d0c4;
+    --text: #1f2124; --text-dim: #5f5b53;
+    --accent: #1a6b57; --accent-soft: rgba(26, 107, 87, 0.14);
+    --amber: #7f5206; --amber-soft: rgba(127, 82, 6, 0.14);
+    --red: #ad362b; --red-soft: rgba(173, 54, 43, 0.14);
+    --blue: #2260a0; --blue-soft: rgba(34, 96, 160, 0.14);
+    --violet: #6a40ad; --violet-soft: rgba(106, 64, 173, 0.14);
+    --orange: #984f0e; --orange-soft: rgba(152, 79, 14, 0.14);
+    color-scheme: light;
+  }
+}
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.badge { margin-left: 8px; padding: 1px 8px; border: 1px solid var(--amber); border-radius: 999px; color: var(--amber); background: var(--amber-soft); letter-spacing: 0.08em; }
+.theme { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.theme button { font: inherit; font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: none; border: 0; color: var(--text-dim); cursor: pointer; }
+.theme button.on { background: var(--surface-2); color: var(--text); }
+.disclaimer { border-left: 2px solid var(--border); padding-left: 12px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="topbar">
+      <div class="eyebrow">the forest origin app prototype <span class="badge">preview</span></div>
+      <div class="theme" role="group" aria-label="theme"><button data-theme-set="system">system</button><button data-theme-set="light">light</button><button data-theme-set="dark">dark</button></div>
+    </div>
+    <p class="dek">what the app shows, computed by the app's own bazi-logic. two parts: the almanac for any day in the precomputed range, and the life chart (bazi) for anyone's birth time.</p>
+  </header>
+  <nav class="tabs"><button data-tab="almanac" class="on">almanac</button><button data-tab="bazi">life chart</button></nav>
+  <div id="tab-almanac" class="page" style="padding:0">
+    <h1 id="title"></h1>
+    <div class="datebar">
+      <div class="controls">
+        <button data-step="-1">prev</button>
+        <input type="date" id="pick">
+        <button data-step="1">next</button>
+      </div>
+      <button data-today class="today">today</button>
+    </div>
+    <div id="out" class="page" style="padding:0"></div>
+  </div>
+  <div id="tab-bazi" class="page" style="padding:0" hidden>
+    <div class="controls"><input type="text" id="who" placeholder="for (name)"><input type="datetime-local" id="birth"><button id="save">save</button></div>
+    <div id="people" class="people"></div>
+    <div class="controls"><button id="export">export</button><button id="import-btn">import</button><input type="file" id="import" accept=".json,application/json" hidden><span id="people-msg" class="mut"></span></div>
+    <p class="mut">saved people stay in this browser only; nothing is sent anywhere. export makes a backup file you can import again.</p>
+    <div id="bazi-out" class="page" style="padding:0"></div>
+  </div>
+  <p class="mut disclaimer">for culture and reflection, not advice. this is a preview: the almanac and chart rules are traditional, only spot-checked, and may contain errors. nothing here is medical, legal, financial or other professional advice.</p>
+  <footer>computed live in this page, almanac for 1970 to 2099 (soluna's day pillar is empty before 1970); generated 2026-10-10T14:50:13.182Z; day rolls over at 23:00; hour pillar follows the selected hour</footer>
+</div>
+<script type="module">
+const { solarToLunar, lunarToSolar, getTimePeriod, calculateLunarFromSolar, calculateSolarFromLunar, getSolarTermsForYear } = (() => {
+/**
+ * Soluna - Gregorian and Chinese Lunar Calendar Converter
+ *
+ * @author Jimmy Lim (mirageglobe@gmail.com)
+ * @version 2.0.0 - Functional Edition
+ */
+
+// ===== CONSTANTS =====
+
+/**
+ * Lunar calendar information for years 1900-2100
+ *
+ * Each hexadecimal value is a 20-bit encoding of lunar year information.
+ * The bit structure (from MSB to LSB) is:
+ *
+ *   Bit Position:  20  19 18 17 16 15 14 13 12 11 10  9  8  7  6  5   4  3  2  1
+ *                  ──  ─────────────────────────────────────────────  ──────────
+ *   Represents:    L   M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12          Leap Month
+ *                  │   │                                    │          │
+ *                  │   └── Month sizes (1=30 days, 0=29)────┘          │
+ *                  │       M1=Jan, M2=Feb, ... M12=Dec                 │
+ *                  │                                                   │
+ *                  └── Leap month size (1=30 days, 0=29 days)          │
+ *                                                                      │
+ *                      Leap month number (0=none, 1-12=which month) ───┘
+ *
+ * Example: 0x095b0 for year 1980 (庚申年 - Year of the Monkey)
+ *
+ *   Hex:    0x095b0
+ *   Binary: 0000 1001 0101 1011 0000 (20 bits)
+ *           │    │              │
+ *           │    │              └── Bits 1-4: 0000 = No leap month
+ *           │    │
+ *           │    └── Bits 5-16 (month sizes, M12 to M1):
+ *           │        1 0 0 1  0 1 0 1  1 0 1 1
+ *           │        │ │ │ │  │ │ │ │  │ │ │ │
+ *           │        │ │ │ │  │ │ │ │  │ │ │ └── M1  (Jan): 1 = 30 days
+ *           │        │ │ │ │  │ │ │ │  │ │ └──── M2  (Feb): 1 = 30 days
+ *           │        │ │ │ │  │ │ │ │  │ └────── M3  (Mar): 0 = 29 days
+ *           │        │ │ │ │  │ │ │ │  └──────── M4  (Apr): 1 = 30 days
+ *           │        │ │ │ │  │ │ │ └────────── M5  (May): 1 = 30 days
+ *           │        │ │ │ │  │ │ └──────────── M6  (Jun): 0 = 29 days
+ *           │        │ │ │ │  │ └────────────── M7  (Jul): 1 = 30 days
+ *           │        │ │ │ │  └──────────────── M8  (Aug): 0 = 29 days
+ *           │        │ │ │ └──────────────────── M9  (Sep): 1 = 30 days
+ *           │        │ │ └────────────────────── M10 (Oct): 0 = 29 days
+ *           │        │ └──────────────────────── M11 (Nov): 0 = 29 days
+ *           │        └────────────────────────── M12 (Dec): 1 = 30 days
+ *           │
+ *           └── Bit 17: 0 = N/A (no leap month)
+ *
+ * Example with leap month: 0x16554 for year 1906 (丙午年)
+ *
+ *   Hex:    0x16554
+ *   Binary: 0001 0110 0101 0101 0100 (20 bits)
+ *                                 └── Bits 1-4: 0100 = 4 (leap month is 4th month)
+ *           └── Bit 17: 1 = Leap month has 30 days
+ */
+const LUNAR_INFO = [
+  // 1900-1909
+  0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+  // 1910-1919
+  0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+  // 1920-1929
+  0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+  // 1930-1939
+  0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+  // 1940-1949
+  0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+  // 1950-1959
+  0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5d0, 0x14573, 0x052d0, 0x0a9a8, 0x0e950, 0x06aa0,
+  // 1960-1969
+  0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+  // 1970-1979
+  0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b5a0, 0x195a6,
+  // 1980-1989
+  0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+  // 1990-1999
+  0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
+  // 2000-2009
+  0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+  // 2010-2019
+  0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+  // 2020-2029
+  0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+  // 2030-2039
+  0x05aa0, 0x076a3, 0x096d0, 0x04bd7, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+  // 2040-2049
+  0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+  // 2050-2059
+  0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+  // 2060-2069
+  0x092e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+  // 2070-2079
+  0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+  // 2080-2089
+  0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d260,
+  // 2090-2099
+  0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a4d0, 0x0d150, 0x0f252,
+  // 2100
+  0x0d520
+];
+
+// Heavenly Stems (天干) - Used in stem-branch calendar system
+const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+
+// Earthly Branches (地支) - Used in stem-branch calendar and time periods
+const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+// Chinese Zodiac Animals - 12-year cycle
+const ZODIAC_ANIMALS = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+
+// Chinese numerals for days and dates
+const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+const DAY_PREFIXES = ['初', '十', '廿', '卅']; // First, Ten, Twenty, Thirty
+
+// Traditional Chinese month names
+const MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '腊'];
+
+/**
+ * Traditional Chinese Time Periods (时辰)
+ *
+ * Ancient Chinese divided the day into 12 periods of 2 hours each,
+ * corresponding to the 12 Earthly Branches and zodiac animals.
+ * Note: 子时 (23:00-01:00) spans midnight and belongs to the next day
+ */
+const TIME_PERIODS = [
+  { name: '子时', zodiac: '鼠', startHour: 23, endHour: 1, dayOffset: 1, branch: '子' }, // Rat: 11pm-1am
+  { name: '丑时', zodiac: '牛', startHour: 1, endHour: 3, dayOffset: 0, branch: '丑' }, // Ox: 1am-3am
+  { name: '寅时', zodiac: '虎', startHour: 3, endHour: 5, dayOffset: 0, branch: '寅' }, // Tiger: 3am-5am
+  { name: '卯时', zodiac: '兔', startHour: 5, endHour: 7, dayOffset: 0, branch: '卯' }, // Rabbit: 5am-7am
+  { name: '辰时', zodiac: '龙', startHour: 7, endHour: 9, dayOffset: 0, branch: '辰' }, // Dragon: 7am-9am
+  { name: '巳时', zodiac: '蛇', startHour: 9, endHour: 11, dayOffset: 0, branch: '巳' }, // Snake: 9am-11am
+  { name: '午时', zodiac: '马', startHour: 11, endHour: 13, dayOffset: 0, branch: '午' }, // Horse: 11am-1pm
+  { name: '未时', zodiac: '羊', startHour: 13, endHour: 15, dayOffset: 0, branch: '未' }, // Goat: 1pm-3pm
+  { name: '申时', zodiac: '猴', startHour: 15, endHour: 17, dayOffset: 0, branch: '申' }, // Monkey: 3pm-5pm
+  { name: '酉时', zodiac: '鸡', startHour: 17, endHour: 19, dayOffset: 0, branch: '酉' }, // Rooster: 5pm-7pm
+  { name: '戌时', zodiac: '狗', startHour: 19, endHour: 21, dayOffset: 0, branch: '戌' }, // Dog: 7pm-9pm
+  { name: '亥时', zodiac: '猪', startHour: 21, endHour: 23, dayOffset: 0, branch: '亥' } // Pig: 9pm-11pm
+];
+
+const TIME_DESCRIPTIONS = {
+  子时: '夜半，又名子夜、中夜',
+  丑时: '鸡鸣，又名荒鸡',
+  寅时: '平旦，又称黎明、早晨、日旦',
+  卯时: '卯时，又名日始、破晓、旭日',
+  辰时: '食时，又名早食',
+  巳时: '隅中，又名日禺',
+  午时: '日中，又名日正、中午',
+  未时: '日昳，又名日跌、日央',
+  申时: '晡时，又名日铺、夕食',
+  酉时: '日入，又名日落、日沉、傍晚',
+  戌时: '黄昏，又名日夕、日暮、日晚',
+  亥时: '人定，又名定昏'
+};
+
+// ===== FESTIVAL DATA =====
+
+/**
+ * Solar (Gregorian) Festivals
+ * Format: 'MMDD*Name' where * indicates a public holiday
+ */
+const SOLAR_FESTIVALS = {
+  '0101': { name: '元旦', isHoliday: true, english: "New Year's Day", traditions: ['public'] },
+  '0214': { name: '情人节', isHoliday: false, english: "Valentine's Day", traditions: ['folk'] },
+  '0308': { name: '妇女节', isHoliday: false, english: "Women's Day", traditions: ['public'] },
+  '0312': { name: '植树节', isHoliday: false, english: 'Arbor Day', traditions: ['public'] },
+  '0401': { name: '愚人节', isHoliday: false, english: "April Fool's Day", traditions: ['folk'] },
+  '0422': { name: '地球日', isHoliday: false, english: 'Earth Day', traditions: ['folk'] },
+  '0501': { name: '劳动节', isHoliday: true, english: 'Labor Day', traditions: ['public'] },
+  '0504': { name: '青年节', isHoliday: false, english: 'Youth Day', traditions: ['public'] },
+  '0601': { name: '儿童节', isHoliday: false, english: "Children's Day", traditions: ['public'] },
+  '0910': { name: '教师节', isHoliday: false, english: "Teachers' Day", traditions: ['public'] },
+  1001: { name: '国庆节', isHoliday: true, english: 'National Day', traditions: ['public'] },
+  1224: { name: '平安夜', isHoliday: false, english: 'Christmas Eve', traditions: ['folk'] },
+  1225: { name: '圣诞节', isHoliday: false, english: 'Christmas Day', traditions: ['folk'] }
+};
+
+/**
+ * Lunar (Chinese) Festivals
+ * Format: 'MMDD' where MM is lunar month, DD is lunar day
+ * Special: '0100' means last day of 12th month (New Year's Eve)
+ *
+ * Includes major festivals and traditional religious/cultural dates:
+ * - Buddhist dates (释迦牟尼, 观世音菩萨, 文殊, 普贤, 地藏王, 弥勒, 韦陀, 阿弥陀佛, 达摩)
+ * - Taoist dates (元始天尊, 太上老君, 玉皇大帝, 关公, 妈祖, 玄天上帝, 文昌, 保生大帝, 吕洞宾, 王母娘娘)
+ * - Folk traditions (三娘煞, 头牙/尾牙)
+ *
+ * Dates verified against: nationsonline.org, kenyon.edu, wikipedia.org
+ */
+const LUNAR_FESTIVALS = {
+  // First month (正月)
+  '0101': {
+    name: '春节',
+    isHoliday: true,
+    english: 'Spring Festival',
+    extra: '元始天尊圣旦 弥勒佛圣旦 四始吉日',
+    traditions: ['public']
+  },
+  '0104': { name: '迎神日', isHoliday: false, english: 'Welcoming Gods Day', traditions: ['folk'] },
+  '0105': { name: '接财神', isHoliday: false, english: 'Welcoming God of Wealth', traditions: ['folk'] },
+  '0109': { name: '玉皇大帝诞', isHoliday: false, english: 'Jade Emperor Birthday', traditions: ['taoist'] },
+  '0115': {
+    name: '元宵节',
+    isHoliday: false,
+    english: 'Lantern Festival',
+    extra: '上元节',
+    traditions: ['public', 'folk']
+  },
+  // Second month
+  '0202': {
+    name: '龙抬头',
+    isHoliday: false,
+    english: 'Dragon Raises Head',
+    extra: '福德正神圣旦',
+    traditions: ['folk']
+  },
+  '0203': { name: '文昌圣旦', isHoliday: false, english: 'Wenchang Birthday', traditions: ['taoist'] },
+  '0215': {
+    name: '释迦牟尼涅槃',
+    isHoliday: false,
+    english: 'Buddha Nirvana Day',
+    extra: '太上老君圣旦',
+    traditions: ['buddhist']
+  },
+  '0216': { name: '头牙', isHoliday: false, english: 'First Ya Festival', extra: '祭拜地主日', traditions: ['folk'] },
+  '0219': { name: '观世音菩萨圣旦', isHoliday: false, english: 'Guanyin Birthday', traditions: ['buddhist'] },
+  '0221': {
+    name: '普贤菩萨圣旦',
+    isHoliday: false,
+    english: 'Samantabhadra Bodhisattva Birthday',
+    traditions: ['buddhist']
+  },
+  // Third month
+  '0303': { name: '上巳节', isHoliday: false, english: 'Shangsi Festival', extra: '玄天上帝诞', traditions: ['folk'] },
+  '0315': {
+    name: '保生大帝诞',
+    isHoliday: false,
+    english: 'Baosheng Dadi Birthday',
+    extra: '玄坛赵公明圣旦',
+    traditions: ['taoist']
+  },
+  '0323': { name: '妈祖圣旦', isHoliday: false, english: 'Mazu Birthday', traditions: ['taoist', 'folk'] },
+  // Fourth month
+  '0401': { name: '四始吉日', isHoliday: false, english: 'Auspicious Day', traditions: ['folk'] },
+  '0404': {
+    name: '文殊菩萨圣旦',
+    isHoliday: false,
+    english: 'Manjushri Bodhisattva Birthday',
+    traditions: ['buddhist']
+  },
+  '0408': {
+    name: '释迦牟尼佛诞',
+    isHoliday: false,
+    english: 'Buddha Birthday',
+    extra: '浴佛节',
+    traditions: ['buddhist']
+  },
+  '0414': { name: '吕洞宾诞', isHoliday: false, english: 'Lü Dongbin Birthday', traditions: ['taoist'] },
+  // Fifth month
+  '0505': { name: '端午节', isHoliday: true, english: 'Dragon Boat Festival', traditions: ['public'] },
+  '0513': { name: '关公磨刀日', isHoliday: false, english: 'Guan Yu Sword Day', traditions: ['folk', 'taoist'] },
+  // Sixth month
+  '0603': { name: '韦陀菩萨圣旦', isHoliday: false, english: 'Skanda Bodhisattva Birthday', traditions: ['buddhist'] },
+  '0619': { name: '观世音菩萨成道日', isHoliday: false, english: 'Guanyin Enlightenment', traditions: ['buddhist'] },
+  '0624': { name: '关公圣旦', isHoliday: false, english: 'Guan Yu Birthday', traditions: ['taoist', 'folk'] },
+  // Seventh month
+  '0701': { name: '四始吉日', isHoliday: false, english: 'Auspicious Day', traditions: ['folk'] },
+  '0707': {
+    name: '七夕',
+    isHoliday: false,
+    english: 'Qixi Festival',
+    extra: "Chinese Valentine's Day",
+    traditions: ['folk']
+  },
+  '0715': {
+    name: '中元节',
+    isHoliday: false,
+    english: 'Ghost Festival',
+    extra: '盂兰盆节',
+    traditions: ['buddhist', 'taoist', 'folk']
+  },
+  '0718': {
+    name: '王母娘娘圣诞',
+    isHoliday: false,
+    english: 'Queen Mother of the West Birthday',
+    traditions: ['taoist']
+  },
+  '0719': { name: '值年太岁圣旦', isHoliday: false, english: 'Tai Sui Birthday', traditions: ['taoist'] },
+  '0730': { name: '地藏王菩萨诞', isHoliday: false, english: 'Dizang Bodhisattva Birthday', traditions: ['buddhist'] },
+  // Eighth month
+  '0815': { name: '中秋节', isHoliday: true, english: 'Mid-Autumn Festival', traditions: ['public'] },
+  // Ninth month
+  '0909': { name: '重阳节', isHoliday: false, english: 'Double Ninth Festival', traditions: ['folk'] },
+  '0919': { name: '观世音菩萨出家日', isHoliday: false, english: 'Guanyin Renunciation Day', traditions: ['buddhist'] },
+  // Tenth month
+  1001: { name: '寒衣节', isHoliday: false, english: 'Cold Clothes Festival', extra: '祭祖节', traditions: ['folk'] },
+  1005: { name: '达摩祖师圣旦', isHoliday: false, english: 'Bodhidharma Birthday', traditions: ['buddhist'] },
+  1015: {
+    name: '下元节',
+    isHoliday: false,
+    english: 'Lower Yuan Festival',
+    extra: '水官大帝诞',
+    traditions: ['taoist', 'folk']
+  },
+  // Eleventh month
+  1117: { name: '阿弥陀佛圣旦', isHoliday: false, english: 'Amitabha Buddha Birthday', traditions: ['buddhist'] },
+  1119: {
+    name: '观世音菩萨诞',
+    isHoliday: false,
+    english: 'Guanyin Day',
+    extra: '南海观音入海日',
+    traditions: ['buddhist']
+  },
+  // Twelfth month (腊月)
+  1208: {
+    name: '腊八节',
+    isHoliday: false,
+    english: 'Laba Festival',
+    extra: '释迦牟尼成道日',
+    traditions: ['buddhist', 'folk']
+  },
+  1216: { name: '尾牙', isHoliday: false, english: 'Last Ya Festival', extra: '谢地主日', traditions: ['folk'] },
+  1223: { name: '小年', isHoliday: false, english: 'Little New Year', traditions: ['folk'] },
+  1224: { name: '送神日', isHoliday: false, english: 'Sending Gods Day', traditions: ['folk', 'taoist'] },
+  1225: { name: '天官巡人间', isHoliday: false, english: 'Heaven Official Inspection', traditions: ['taoist'] },
+  // Special: Last day of year (varies 29 or 30)
+  '0100': { name: '除夕', isHoliday: true, english: "New Year's Eve", traditions: ['public'] }
+};
+
+/**
+ * Filter a festival object by requested tradition tags.
+ * Returns the festival unchanged if no filter is requested, null if it doesn't match.
+ * @param {Object|null} festival
+ * @param {string[]|undefined} traditions - requested tradition tags (e.g. ['public','buddhist'])
+ * @returns {Object|null}
+ */
+const filterFestival = (festival, traditions) => {
+  if (!festival || !traditions || traditions.length === 0) return festival;
+  return festival.traditions?.some((t) => traditions.includes(t)) ? festival : null;
+};
+
+/**
+ * 三娘煞日 (Sanniang Sha Days) - Inauspicious days for weddings
+ * Days: 3, 7, 13, 18, 22, 27 of each lunar month
+ */
+const SANNIANG_SHA_DAYS = [3, 7, 13, 18, 22, 27];
+
+/**
+ * Solar Term constants for calculation
+ * Base D constant for 20th century (1900-1999) and 21st century (2000-2099)
+ * Used in formula: D = (Year - 1900) * 0.2422 + C
+ */
+const SOLAR_TERM_INFO = [
+  // 小寒, 大寒, 立春, 雨水, 惊蛰, 春分, 清明, 谷雨, 立夏, 小满, 芒种, 夏至, 小暑, 大暑, 立秋, 处暑, 白露, 秋分, 寒露, 霜降, 立冬, 小雪, 大雪, 冬至
+  [
+    5.4055, 20.12, 3.87, 18.73, 5.63, 20.646, 4.81, 20.1, 5.52, 21.04, 5.678, 21.37, 7.108, 22.83, 7.5, 23.13, 7.646,
+    23.042, 8.318, 23.438, 7.438, 22.36, 7.18, 21.94
+  ], // 1900-1999
+  [
+    5.4055, 20.12, 4.15, 18.73, 5.63, 20.646, 5.11, 20.1, 5.52, 21.04, 5.678, 21.37, 7.108, 22.83, 7.5, 23.13, 7.646,
+    23.042, 8.318, 23.438, 7.438, 22.36, 7.18, 21.94
+  ] // 2000-2099 (Adjusted slightly)
+];
+
+const SOLAR_TERM_NAMES = [
+  '小寒',
+  '大寒',
+  '立春',
+  '雨水',
+  '惊蛰',
+  '春分',
+  '清明',
+  '谷雨',
+  '立夏',
+  '小满',
+  '芒种',
+  '夏至',
+  '小暑',
+  '大暑',
+  '立秋',
+  '处暑',
+  '白露',
+  '秋分',
+  '寒露',
+  '霜降',
+  '立冬',
+  '小雪',
+  '大雪',
+  '冬至'
+];
+
+// Base date for lunar calendar calculations (Jan 31, 1900)
+const BASE_DATE = new Date(1900, 0, 31);
+
+// Constant for date calculations (24 * 60 * 60 * 1000)
+const MILLISECONDS_PER_DAY = 86400000;
+
+// ===== UTILITY FUNCTIONS =====
+
+/**
+ * Check if a value is a valid Date
+ */
+const isValidDate = (date) => date instanceof Date && !Number.isNaN(date.getTime());
+
+/**
+ * Get lunar year information from lookup table
+ */
+const getLunarYearInfo = (year) => LUNAR_INFO[year - 1900];
+
+/**
+ * Calculate total days in a lunar year
+ *
+ * The calculation:
+ * 1. Start with base of 348 days (12 months × 29 days)
+ * 2. Add 1 day for each "big month" (30 days) by checking bits
+ * 3. Add days from leap month if present
+ *
+ * @param {number} year - Lunar year (1900-2049)
+ * @returns {number} Total days in the lunar year (353-385)
+ */
+const calculateLunarYearDays = (year) => {
+  const yearInfo = getLunarYearInfo(year);
+  let totalDays = 348; // Base: 12 months × 29 days
+
+  // Check each bit (0x8000 to 0x10) to determine 30-day months
+  // Bit set to 1 = 30 days (big month), 0 = 29 days (small month)
+  for (let i = 0x8000; i > 0x8; i >>= 1) {
+    totalDays += yearInfo & i ? 1 : 0;
+  }
+
+  return totalDays + calculateLeapMonthDays(year);
+};
+
+/**
+ * Get which month is the leap month (0 if none)
+ */
+const getLeapMonth = (year) => getLunarYearInfo(year) & 0xf;
+
+/**
+ * Calculate days in leap month (0 if no leap month)
+ */
+const calculateLeapMonthDays = (year) => {
+  const leapMonth = getLeapMonth(year);
+  if (leapMonth === 0) return 0;
+
+  const yearInfo = getLunarYearInfo(year);
+  return yearInfo & 0x10000 ? 30 : 29;
+};
+
+/**
+ * Calculate days in a specific lunar month
+ */
+const calculateMonthDays = (year, month) => {
+  const yearInfo = getLunarYearInfo(year);
+  return yearInfo & (0x10000 >> month) ? 30 : 29;
+};
+
+/**
+ * Get stem-branch combination from number
+ */
+const getStemBranch = (num) => HEAVENLY_STEMS[num % 10] + EARTHLY_BRANCHES[num % 12];
+
+/**
+ * Get the Heavenly Stem for an hour based on the Day Stem and Hour Branch
+ * Formula: HourStemIndex = (DayStemIndex % 5 * 2 + HourBranchIndex) % 10
+ */
+const getHourStem = (dayStemIdx, hourBranchIdx) => {
+  return HEAVENLY_STEMS[((dayStemIdx % 5) * 2 + hourBranchIdx) % 10];
+};
+
+/**
+ * Format lunar day into Chinese characters
+ */
+const formatLunarDay = (day) => {
+  switch (day) {
+    case 10:
+      return '初十';
+    case 20:
+      return '二十';
+    case 30:
+      return '三十';
+    default:
+      return DAY_PREFIXES[Math.floor(day / 10)] + DAY_NAMES[day % 10];
+  }
+};
+
+/**
+ * Adjust date for Chinese time zodiac system
+ *
+ * In traditional Chinese timekeeping, 子时 (23:00-01:00) is considered
+ * the beginning of the next day. This function adjusts the date accordingly.
+ *
+ * @param {Date} date - The date to adjust
+ * @returns {Date} Adjusted date (next day if hour is 23, same day otherwise)
+ */
+const adjustForTimeZodiac = (date) => {
+  const hour = date.getHours();
+
+  // If it's 11pm (23:00), it's considered the next day in lunar calendar
+  if (hour === 23) {
+    const adjustedDate = new Date(date);
+    adjustedDate.setDate(adjustedDate.getDate() + 1);
+    return adjustedDate;
+  }
+
+  return date;
+};
+
+/**
+ * Extract wall-clock date components from a Date.
+ * When utcOffset (hours) is provided, interprets the timestamp at that fixed offset
+ * rather than the runtime's local timezone.
+ */
+const getComponents = (date, utcOffset) => {
+  if (utcOffset === undefined || utcOffset === null) {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth(),
+      day: date.getDate(),
+      hour: date.getHours(),
+      minute: date.getMinutes(),
+      second: date.getSeconds()
+    };
+  }
+  const shifted = new Date(date.getTime() + utcOffset * 3600000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth(),
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+    second: shifted.getUTCSeconds()
+  };
+};
+
+// ===== TIME PERIOD FUNCTIONS =====
+
+const getTimePeriodForHour = (hour) => {
+  if (hour >= 23 || hour < 1) {
+    return {
+      name: '子时',
+      zodiac: '鼠',
+      period: '23:00-01:00',
+      branch: '子',
+      description: TIME_DESCRIPTIONS['子时']
+    };
+  }
+
+  const timePeriod = TIME_PERIODS.find((period) => hour >= period.startHour && hour < period.endHour);
+
+  if (!timePeriod) {
+    return {
+      name: '未知',
+      zodiac: '未知',
+      period: '未知',
+      branch: '未知',
+      description: '时间段未知'
+    };
+  }
+
+  return {
+    name: timePeriod.name,
+    zodiac: timePeriod.zodiac,
+    period: `${String(timePeriod.startHour).padStart(2, '0')}:00-${String(timePeriod.endHour).padStart(2, '0')}:00`,
+    branch: timePeriod.branch,
+    description: TIME_DESCRIPTIONS[timePeriod.name] || '时间段描述未知'
+  };
+};
+
+/**
+ * Get time period information for a given time
+ */
+const getTimePeriod = (date) => {
+  if (!isValidDate(date)) {
+    throw new Error('Invalid date provided');
+  }
+  return getTimePeriodForHour(date.getHours());
+};
+
+// ===== CORE CONVERSION FUNCTIONS =====
+
+/**
+ * Convert solar (Gregorian) date to lunar date information
+ *
+ * Algorithm:
+ * 1. Calculate days from base date (Jan 31, 1900)
+ * 2. Subtract year by year to find lunar year
+ * 3. Subtract month by month (handling leap months) to find lunar month
+ * 4. Remaining days = lunar day
+ *
+ * @param {Date} solarDate - Gregorian date to convert
+ * @returns {Object} Lunar date info: { year, month, day, isLeap }
+ */
+const calculateLunarFromSolar = (solarDate) => {
+  // Calculate total days from base date (1900/1/31)
+  const dayOffset = Math.round((solarDate.valueOf() - BASE_DATE.valueOf()) / MILLISECONDS_PER_DAY);
+  let remainingDays = dayOffset;
+  let year = 1900;
+
+  // Find the lunar year by subtracting year lengths
+  while (year < 2101 && remainingDays > 0) {
+    const yearDays = calculateLunarYearDays(year);
+    if (remainingDays < yearDays) break;
+    remainingDays -= yearDays;
+    year++;
+  }
+
+  if (remainingDays < 0) {
+    year--;
+    remainingDays += calculateLunarYearDays(year);
+  }
+
+  // Find the lunar month and day by subtracting month lengths
+  const leapMonth = getLeapMonth(year);
+  let month;
+  let isLeapMonth = false;
+
+  for (month = 1; month <= 12; month++) {
+    // Regular month days
+    const monthDays = calculateMonthDays(year, month);
+    if (remainingDays < monthDays) {
+      isLeapMonth = false;
+      break;
+    }
+    remainingDays -= monthDays;
+
+    // Leap month days (if applicable)
+    if (month === leapMonth) {
+      const leapDays = calculateLeapMonthDays(year);
+      if (remainingDays < leapDays) {
+        isLeapMonth = true;
+        break;
+      }
+      remainingDays -= leapDays;
+    }
+  }
+
+  return {
+    year,
+    month,
+    day: remainingDays + 1,
+    isLeap: isLeapMonth
+  };
+};
+
+/**
+ * Convert lunar date to solar (Gregorian) date information
+ *
+ * Algorithm (reverse of lunar to solar):
+ * 1. Add up all days from 1900 to target lunar year
+ * 2. Add days for complete months in target year
+ * 3. Add days in target month
+ * 4. Add to base date to get Gregorian date
+ *
+ * @param {number} lunarYear - Lunar year
+ * @param {number} lunarMonth - Lunar month (1-12)
+ * @param {number} lunarDay - Lunar day (1-30)
+ * @param {boolean} isLeapMonth - Whether this is a leap month
+ * @param {number} hour - Hour (0-23)
+ * @param {number} minute - Minute (0-59)
+ * @param {number} second - Second (0-59)
+ * @returns {Object} Solar date info: { year, month, day, hour, minute, second }
+ */
+const calculateSolarFromLunar = (
+  lunarYear,
+  lunarMonth,
+  lunarDay,
+  isLeapMonth = false,
+  hour = 0,
+  minute = 0,
+  second = 0
+) => {
+  let totalDays = 0;
+
+  // Sum all days from 1900 to target year (exclusive)
+  for (let year = 1900; year < lunarYear; year++) {
+    totalDays += calculateLunarYearDays(year);
+  }
+
+  // Add days for complete months in the current year
+  for (let month = 1; month < lunarMonth; month++) {
+    if (month === getLeapMonth(lunarYear)) {
+      totalDays += calculateLeapMonthDays(lunarYear);
+    }
+    totalDays += calculateMonthDays(lunarYear, month);
+  }
+
+  // If current month is leap month, add normal month days
+  if (isLeapMonth && getLeapMonth(lunarYear) === lunarMonth) {
+    totalDays += calculateMonthDays(lunarYear, lunarMonth);
+  }
+
+  // Add days in current month
+  totalDays += lunarDay - 1;
+
+  const solarDate = new Date(BASE_DATE.valueOf() + totalDays * MILLISECONDS_PER_DAY);
+
+  return {
+    year: solarDate.getFullYear(),
+    month: solarDate.getMonth(),
+    day: solarDate.getDate(),
+    hour,
+    minute,
+    second
+  };
+};
+
+/**
+ * Calculate the date (day of month) for a specific solar term
+ *
+ * Formula: int( (Y * D) + C ) - L
+ * Y = year suffix (last 2 digits), D = 0.2422, C = constant from SOLAR_TERM_INFO, L = int(Y/4)
+ * Covers 1900-2100 with ≤1 day deviation; production use would need VSOP87.
+ *
+ * @param {number} year - Gregorian year
+ * @param {number} termIndex - Index of solar term (0-23)
+ * @returns {number} Day of the month
+ */
+const getSolarTermDay = (year, termIndex) => {
+  const centuryIdx = year < 2000 ? 0 : 1;
+  const yearSuffix = year % 100;
+  const c = SOLAR_TERM_INFO[centuryIdx][termIndex];
+  return Math.floor(yearSuffix * 0.2422 + c) - Math.floor(yearSuffix / 4);
+};
+
+/**
+ * Get all 24 solar terms for a given Gregorian year
+ *
+ * @param {number} year - Gregorian year
+ * @returns {Array<{nameZh: string, month: number, day: number}>}
+ */
+const getSolarTermsForYear = (year) =>
+  SOLAR_TERM_NAMES.map((nameZh, i) => ({
+    nameZh,
+    month: Math.floor(i / 2) + 1,
+    day: getSolarTermDay(year, i)
+  }));
+
+/**
+ * Calculate stem-branch (干支) information for a date
+ *
+ * The stem-branch system is a 60-year/60-day cycle combining:
+ * - 10 Heavenly Stems (天干)
+ * - 12 Earthly Branches (地支)
+ * Used for years, months, days, and hours in traditional Chinese calendar
+ *
+ * @param {number} year - Gregorian year
+ * @param {number} month - Gregorian month (0-11)
+ * @param {number} day - Gregorian day
+ * @returns {Object} Stem-branch for year, month, and day
+ */
+const calculateStemBranch = (year, month, day) => {
+  // Year pillar changes at Li Chun (Start of Spring, term index 2), not Jan 1
+  let yearForStem = year;
+  const liChunDay = getSolarTermDay(year, 2);
+  if (month === 0 || (month === 1 && day < liChunDay)) {
+    yearForStem--;
+  }
+  const yearIdx = (yearForStem - 1900 + 36) % 60;
+
+  // Month pillar is defined by the 12 Jie sectional terms (even indices: 0, 2, 4, ...)
+  // Each Jie falls in the same Gregorian month; if before the term, use the prior solar month.
+  const termIndex = month * 2;
+  const termDay = getSolarTermDay(year, termIndex);
+
+  // Offset 13 places 1900-Jan (post-XiaoHan) at the correct cycle position (Wu-Yin = 14th)
+  let totalMonths = (year - 1900) * 12 + month + 13;
+  if (day < termDay) {
+    totalMonths--;
+  }
+  const monthIdx = totalMonths % 60;
+
+  // Day stem-branch
+  // +17 anchors the sexagenary day cycle: 2000-01-01 = 戊午, 2000-01-07 = 甲子 (HKO almanac).
+  // local patch mirroring upstream soluna fix; the prior +33 / 甲戌 anchor was off by 16.
+  const dayOffset = Math.floor(Date.UTC(year, month, day) / MILLISECONDS_PER_DAY) + 17;
+  const dayIdx = dayOffset % 60;
+
+  return {
+    year: {
+      stem: HEAVENLY_STEMS[yearIdx % 10],
+      branch: EARTHLY_BRANCHES[yearIdx % 12],
+      name: getStemBranch(yearIdx),
+      index: yearIdx
+    },
+    month: {
+      stem: HEAVENLY_STEMS[monthIdx % 10],
+      branch: EARTHLY_BRANCHES[monthIdx % 12],
+      name: getStemBranch(monthIdx),
+      index: monthIdx
+    },
+    day: {
+      stem: HEAVENLY_STEMS[dayIdx % 10],
+      branch: EARTHLY_BRANCHES[dayIdx % 12],
+      name: getStemBranch(dayIdx),
+      index: dayIdx
+    }
+  };
+};
+
+// ===== FESTIVAL LOOKUP FUNCTIONS =====
+
+/**
+ * Get solar (Gregorian) festival for a given date
+ * @param {number} month - Month (1-12)
+ * @param {number} day - Day (1-31)
+ * @returns {Object|null} Festival info or null
+ */
+const getSolarFestival = (month, day) => {
+  const key = String(month).padStart(2, '0') + String(day).padStart(2, '0');
+  return SOLAR_FESTIVALS[key] || null;
+};
+
+/**
+ * Get lunar festival for a given lunar date
+ * @param {number} month - Lunar month (1-12)
+ * @param {number} day - Lunar day (1-30)
+ * @param {number} year - Lunar year (for New Year's Eve calculation)
+ * @returns {Object|null} Festival info or null
+ */
+const getLunarFestival = (month, day, year) => {
+  const key = String(month).padStart(2, '0') + String(day).padStart(2, '0');
+
+  // Check for New Year's Eve (last day of 12th month)
+  if (month === 12) {
+    const lastDay = calculateMonthDays(year, 12);
+    if (day === lastDay) {
+      return LUNAR_FESTIVALS['0100']; // 除夕
+    }
+  }
+
+  return LUNAR_FESTIVALS[key] || null;
+};
+
+/**
+ * Check if a lunar day is a 三娘煞日 (Sanniang Sha Day)
+ * These are inauspicious days for weddings: 3, 7, 13, 18, 22, 27
+ * @param {number} day - Lunar day
+ * @returns {boolean} True if it's a Sanniang Sha day
+ */
+const isSanniangShaDay = (day) => SANNIANG_SHA_DAYS.includes(day);
+
+// ===== MAIN API FUNCTIONS =====
+
+/**
+ * Convert Gregorian (solar) date to comprehensive lunar calendar information
+ *
+ * Main API function that returns complete lunar calendar data including:
+ * - Solar date info (year, month, day, time)
+ * - Lunar date info (year, month, day, zodiac)
+ * - Stem-branch (干支) for year, month, day, hour
+ * - Time period (时辰) information
+ * - Festivals (solar and lunar)
+ *
+ * Supports two input formats:
+ * 1. solarToLunar(dateObject)
+ * 2. solarToLunar(year, month, day, hour, minute, second)
+ *
+ * @param {Date|number} solarDate - Gregorian date object OR year
+ * @param {number} [month] - Gregorian month (1-12)
+ * @param {number} [day] - Gregorian day (1-31)
+ * @param {number} [hour=0] - Hour (0-23)
+ * @param {number} [minute=0] - Minute (0-59)
+ * @param {number} [second=0] - Second (0-59)
+ * @returns {Object} Comprehensive lunar calendar information
+ * @throws {Error} If invalid date provided
+ */
+const solarToLunar = (solarDate, month, day, hour = 0, minute = 0, second = 0, options = {}) => {
+  let date;
+  if (solarDate instanceof Date) {
+    date = solarDate;
+    if (typeof month === 'object' && month !== null) {
+      options = month; // solarToLunar(date, { traditions: [...] })
+    }
+  } else if (typeof solarDate === 'number' && month !== undefined && day !== undefined) {
+    date = new Date(solarDate, month - 1, day, hour, minute, second);
+  } else {
+    throw new Error('Invalid date provided');
+  }
+
+  if (!isValidDate(date)) {
+    throw new Error('Invalid date provided');
+  }
+
+  // Extract wall-clock components, respecting utcOffset when provided
+  const isDateForm = solarDate instanceof Date;
+  const comp = isDateForm ? getComponents(date, options.utcOffset) : getComponents(date, undefined);
+
+  // Adjust if 23:00 (子时 belongs to the next day in the lunar calendar)
+  let { year: cYear, month: cMonth, day: cDay } = comp;
+  if (comp.hour === 23) {
+    const next = new Date(Date.UTC(cYear, cMonth, cDay + 1));
+    cYear = next.getUTCFullYear();
+    cMonth = next.getUTCMonth();
+    cDay = next.getUTCDate();
+  }
+  const normalizedDate = new Date(cYear, cMonth, cDay);
+
+  // Calculate lunar information
+  const lunarInfo = calculateLunarFromSolar(normalizedDate);
+
+  // Get time period using the offset-adjusted hour
+  const timePeriod = getTimePeriodForHour(comp.hour);
+
+  // Calculate stem-branch information
+  const stemBranchInfo = calculateStemBranch(
+    normalizedDate.getFullYear(),
+    normalizedDate.getMonth(),
+    normalizedDate.getDate()
+  );
+
+  // Get festival information
+  const traditions = options.traditions && options.traditions.length > 0 ? options.traditions : null;
+  const solarFestival = filterFestival(
+    getSolarFestival(normalizedDate.getMonth() + 1, normalizedDate.getDate()),
+    traditions
+  );
+  const lunarFestival = filterFestival(getLunarFestival(lunarInfo.month, lunarInfo.day, lunarInfo.year), traditions);
+  const sanniangSha = isSanniangShaDay(lunarInfo.day);
+
+  const solarYear = normalizedDate.getFullYear();
+  const solarMonth = normalizedDate.getMonth() + 1;
+  const solarDay = normalizedDate.getDate();
+  const matchedTerm = getSolarTermsForYear(solarYear).find((t) => t.month === solarMonth && t.day === solarDay);
+
+  return {
+    solar: {
+      year: normalizedDate.getFullYear(),
+      month: normalizedDate.getMonth() + 1,
+      day: normalizedDate.getDate(),
+      weekDay: DAY_NAMES[normalizedDate.getDay()],
+      time: {
+        hour: comp.hour,
+        minute: comp.minute,
+        second: comp.second
+      }
+    },
+    lunar: {
+      year: lunarInfo.year,
+      month: lunarInfo.month,
+      day: lunarInfo.day,
+      isLeapMonth: lunarInfo.isLeap,
+      monthName: MONTH_NAMES[lunarInfo.month - 1],
+      dayName: formatLunarDay(lunarInfo.day),
+      zodiac: ZODIAC_ANIMALS[(lunarInfo.year - 1900) % 12]
+    },
+    stemBranch: {
+      year: stemBranchInfo.year.name,
+      month: stemBranchInfo.month.name,
+      day: stemBranchInfo.day.name,
+      time: timePeriod ? timePeriod.branch : null
+    },
+    baZi: {
+      year: { stem: stemBranchInfo.year.stem, branch: stemBranchInfo.year.branch },
+      month: { stem: stemBranchInfo.month.stem, branch: stemBranchInfo.month.branch },
+      day: { stem: stemBranchInfo.day.stem, branch: stemBranchInfo.day.branch },
+      hour: timePeriod
+        ? {
+            stem: getHourStem(stemBranchInfo.day.index % 10, EARTHLY_BRANCHES.indexOf(timePeriod.branch)),
+            branch: timePeriod.branch
+          }
+        : null
+    },
+    timePeriod,
+    festivals: {
+      solar: solarFestival,
+      lunar: lunarFestival,
+      sanniangSha
+    },
+    solarTerms: matchedTerm ? matchedTerm.nameZh : ''
+  };
+};
+
+/**
+ * Convert lunar date to comprehensive solar calendar information
+ *
+ * Main API function (reverse of solarToLunar) that returns complete data.
+ *
+ * Supports two input formats:
+ * 1. lunarToSolar(dateObject, [isLeapMonth=false], [hour=0], [min=0], [sec=0])
+ * 2. lunarToSolar(year, month, day, [isLeapMonth=false], [hour=0], [min=0], [sec=0])
+ *
+ * @param {Date|number} lunarYearOrDate - Lunar date object OR lunar year
+ * @param {number|boolean} lunarMonthOrLeap - Lunar month (1-12) OR isLeapMonth if format 1
+ * @param {number} [lunarDay] - Lunar day (1-30)
+ * @param {boolean} [isLeapMonth=false] - Whether this is a leap month
+ * @param {number} [hour=0] - Hour (0-23)
+ * @param {number} [minute=0] - Minute (0-59)
+ * @param {number} [second=0] - Second (0-59)
+ * @returns {Object} Comprehensive solar/lunar calendar information
+ */
+const lunarToSolar = (
+  lunarYearOrDate,
+  lunarMonthOrLeap,
+  lunarDayVal,
+  isLeapMonthVal = false,
+  hourVal = 0,
+  minuteVal = 0,
+  secondVal = 0,
+  options = {}
+) => {
+  let lunarYear,
+    lunarMonth,
+    lunarDay,
+    isLeapMonth = false,
+    hour = 0,
+    minute = 0,
+    second = 0;
+
+  if (lunarYearOrDate instanceof Date) {
+    if (typeof lunarDayVal === 'object' && lunarDayVal !== null) {
+      options = lunarDayVal; // lunarToSolar(date, isLeapMonth, { traditions: [...] })
+    }
+    const comp = getComponents(lunarYearOrDate, options.utcOffset);
+    lunarYear = comp.year;
+    lunarMonth = comp.month + 1;
+    lunarDay = comp.day;
+    isLeapMonth = !!lunarMonthOrLeap;
+    hour = hourVal;
+    minute = minuteVal;
+    second = secondVal;
+  } else if (typeof lunarYearOrDate === 'number' && lunarMonthOrLeap !== undefined && lunarDayVal !== undefined) {
+    lunarYear = lunarYearOrDate;
+    lunarMonth = lunarMonthOrLeap;
+    lunarDay = lunarDayVal;
+    isLeapMonth = isLeapMonthVal;
+    hour = hourVal;
+    minute = minuteVal;
+    second = secondVal;
+  } else {
+    throw new Error(
+      'Invalid input. Use (lunarDate, isLeapMonth) or (year, month, day, isLeapMonth, hour, minute, second)'
+    );
+  }
+
+  if (isLeapMonth) {
+    const leapMonthForYear = getLeapMonth(lunarYear);
+    if (leapMonthForYear === 0) {
+      throw new Error(`Year ${lunarYear} has no leap month`);
+    }
+    if (leapMonthForYear !== lunarMonth) {
+      throw new Error(`Year ${lunarYear} leap month is ${leapMonthForYear}, not ${lunarMonth}`);
+    }
+  }
+
+  // Calculate solar information
+  const solarInfo = calculateSolarFromLunar(lunarYear, lunarMonth, lunarDay, isLeapMonth, hour, minute, second);
+  const solarDate = new Date(solarInfo.year, solarInfo.month, solarInfo.day);
+  const stemBranchInfo = calculateStemBranch(solarInfo.year, solarInfo.month, solarInfo.day);
+
+  // Get festival information
+  const traditionsFilter = options.traditions && options.traditions.length > 0 ? options.traditions : null;
+  const solarFestival = filterFestival(getSolarFestival(solarInfo.month + 1, solarInfo.day), traditionsFilter);
+  const lunarFestival = filterFestival(getLunarFestival(lunarMonth, lunarDay, lunarYear), traditionsFilter);
+  const sanniangSha = isSanniangShaDay(lunarDay);
+  const matchedTermLunar = getSolarTermsForYear(solarInfo.year).find(
+    (t) => t.month === solarInfo.month + 1 && t.day === solarInfo.day
+  );
+
+  const hourTimePeriod = solarInfo.hour !== undefined ? getTimePeriod(new Date(2000, 0, 1, solarInfo.hour)) : null;
+
+  return {
+    solar: {
+      year: solarInfo.year,
+      month: solarInfo.month + 1,
+      day: solarInfo.day,
+      weekDay: DAY_NAMES[solarDate.getDay()],
+      time: {
+        hour: solarInfo.hour,
+        minute: solarInfo.minute,
+        second: solarInfo.second
+      }
+    },
+    lunar: {
+      year: lunarYear,
+      month: lunarMonth,
+      day: lunarDay,
+      isLeapMonth: isLeapMonth,
+      monthName: MONTH_NAMES[lunarMonth - 1],
+      dayName: formatLunarDay(lunarDay),
+      zodiac: ZODIAC_ANIMALS[(lunarYear - 1900) % 12]
+    },
+    stemBranch: {
+      year: stemBranchInfo.year.name,
+      month: stemBranchInfo.month.name,
+      day: stemBranchInfo.day.name,
+      time: hourTimePeriod ? hourTimePeriod.branch : null
+    },
+    baZi: {
+      year: { stem: stemBranchInfo.year.stem, branch: stemBranchInfo.year.branch },
+      month: { stem: stemBranchInfo.month.stem, branch: stemBranchInfo.month.branch },
+      day: { stem: stemBranchInfo.day.stem, branch: stemBranchInfo.day.branch },
+      hour: hourTimePeriod
+        ? {
+            stem: getHourStem(stemBranchInfo.day.index % 10, EARTHLY_BRANCHES.indexOf(hourTimePeriod.branch)),
+            branch: hourTimePeriod.branch
+          }
+        : null
+    },
+    timePeriod: null,
+    festivals: {
+      solar: solarFestival,
+      lunar: lunarFestival,
+      sanniangSha
+    },
+    solarTerms: matchedTermLunar ? matchedTermLunar.nameZh : ''
+  };
+};
+
+// Export functions for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    solarToLunar,
+    lunarToSolar,
+    getTimePeriod,
+    calculateLunarFromSolar,
+    calculateSolarFromLunar,
+    getSolarTermsForYear
+  };
+} else if (typeof window !== 'undefined') {
+  window.Soluna = {
+    solarToLunar,
+    lunarToSolar,
+    getTimePeriod,
+    calculateLunarFromSolar,
+    calculateSolarFromLunar,
+    getSolarTermsForYear
+  };
+}
+
+
+return { solarToLunar, lunarToSolar, getTimePeriod, calculateLunarFromSolar, calculateSolarFromLunar, getSolarTermsForYear };
+})();
+                                 
+               
+                         
+              
+               
+ 
+
+function localComponents(date      , utcOffset         )                 {
+  if (utcOffset === undefined) {
+    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), hour: date.getHours() };
+  }
+  const shifted = new Date(date.getTime() + utcOffset * 3_600_000);
+  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate(), hour: shifted.getUTCHours() };
+}
+
+
+
+const HEAVENLY_STEMS = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸']         ;
+const EARTHLY_BRANCHES = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥']         ;
+
+const HOUR_BRANCH_NAMES = ['子時','丑時','寅時','卯時','辰時','巳時','午時','未時','申時','酉時','戌時','亥時']         ;
+
+// day pillar derivation is owned by soluna; it handles the 子时 (23:00) day rollover,
+// which a plain calendar-date calculation misses. all interpretation modules read from here.
+function getDayPillar(date      , utcOffset         )         {
+  return solarToLunar(date, { utcOffset }).baZi.day;
+}
+
+function getHourBranchIndex(hour        )         {
+  return Math.floor((hour + 1) / 2) % 12;
+}
+
+function getHourPillar(date      , dayStemIndex        , utcOffset         )         {
+  const { hour } = localComponents(date, utcOffset);
+  const hourBranchIndex = getHourBranchIndex(hour);
+  const startStem = (dayStemIndex % 5) * 2;
+  const stemIndex = (startStem + hourBranchIndex) % 10;
+  return { stem: HEAVENLY_STEMS[stemIndex], branch: EARTHLY_BRANCHES[hourBranchIndex] };
+}
+
+function getHourBranchName(hour        )         {
+  return HOUR_BRANCH_NAMES[getHourBranchIndex(hour)];
+}
+
+function getDayStemIndex(date      , utcOffset         )         {
+  const stem = getDayPillar(date, utcOffset).stem;
+  return HEAVENLY_STEMS.indexOf(stem                                 );
+}
+
+
+function getFourPillars(date      , utcOffset         )              {
+  const result = solarToLunar(date, { utcOffset });
+  return {
+    year: result.baZi.year,
+    month: result.baZi.month,
+    day: result.baZi.day,
+    hour: result.baZi.hour ?? { stem: '', branch: '' },
+  };
+}
+
+function getYearPillar(date      , utcOffset         )         {
+  return solarToLunar(date, { utcOffset }).baZi.year;
+}
+
+function getMonthPillar(date      , utcOffset         )         {
+  return solarToLunar(date, { utcOffset }).baZi.month;
+}
+
+function getLunarDate(date      , utcOffset         )                                                                     {
+  return solarToLunar(date, { utcOffset }).lunar;
+}
+
+function getSolarTerm(date      , utcOffset         )                {
+  const term = solarToLunar(date, { utcOffset }).solarTerms;
+  return term || null;
+}
+
+function getFestivals(date      , utcOffset         )             {
+  const { solar, lunar } = solarToLunar(date, { utcOffset }).festivals;
+  const result             = [];
+  if (solar) result.push({ name: solar.name, english: solar.english, isHoliday: solar.isHoliday, extra: solar.extra });
+  if (lunar) result.push({ name: lunar.name, english: lunar.english, isHoliday: lunar.isHoliday, extra: lunar.extra });
+  return result;
+}
+
+
+
+
+const OFFICERS                     = [
+  ['建', 'establish'],
+  ['除', 'remove'],
+  ['满', 'full'],
+  ['平', 'balance'],
+  ['定', 'settle'],
+  ['执', 'hold'],
+  ['破', 'break'],
+  ['危', 'danger'],
+  ['成', 'success'],
+  ['收', 'receive'],
+  ['开', 'open'],
+  ['闭', 'close'],
+];
+
+// Returns the month's earthly branch index (0-11) derived from solar terms (节气).
+// Month starts at each 节 term (even indices in the solar term list).
+function getMonthBranchIndex(date      , utcOffset         )         {
+  const { year, month, day } = localComponents(date, utcOffset);
+  const terms = getSolarTermsForYear(year);
+
+  // 节 terms are at even indices; slot 0..11 map to branch (slot+1)%12
+  for (let slot = 11; slot >= 0; slot--) {
+    const t = terms[slot * 2];
+    if (month > t.month || (month === t.month && day >= t.day)) {
+      return (slot + 1) % 12;
+    }
+  }
+
+  // Before 小寒 this year - still in 子月 from prev year's 大雪
+  return 0;
+}
+
+function getMonthBranch(date      , utcOffset         )         {
+  return EARTHLY_BRANCHES[getMonthBranchIndex(date, utcOffset)];
+}
+
+function getDailyOfficer(date      , utcOffset         )               {
+  const dayBranch = getDayPillar(date, utcOffset).branch;
+  const dayBranchIndex = EARTHLY_BRANCHES.indexOf(dayBranch                                   );
+  const monthBranchIndex = getMonthBranchIndex(date, utcOffset);
+  const index = (dayBranchIndex - monthBranchIndex + 12) % 12;
+  return { index, name: OFFICERS[index][0], english: OFFICERS[index][1] };
+}
+
+
+// 天乙贵人 by day stem index (甲乙丙丁戊己庚辛壬癸)
+const NOBLE_BRANCHES                     = [
+  [1, 7],   // 甲 → 丑未
+  [0, 8],   // 乙 → 子申
+  [11, 9],  // 丙 → 亥酉
+  [11, 9],  // 丁 → 亥酉
+  [1, 7],   // 戊 → 丑未
+  [0, 8],   // 己 → 子申
+  [1, 7],   // 庚 → 丑未
+  [6, 2],   // 辛 → 午寅
+  [3, 5],   // 壬 → 卯巳
+  [3, 5],   // 癸 → 卯巳
+];
+
+// 日禄 by day stem index
+const LU_BRANCH = [2, 3, 5, 6, 5, 6, 8, 9, 11, 0];
+
+// 截路空亡 by stem group (stem % 5)
+const VOID_BRANCHES                     = [
+  [8, 9],  // 甲己 → 申酉
+  [6, 7],  // 乙庚 → 午未
+  [4, 5],  // 丙辛 → 辰巳
+  [2, 3],  // 丁壬 → 寅卯
+  [0, 1],  // 戊癸 → 子丑
+];
+
+const HOUR_NAMES = ['子時','丑時','寅時','卯時','辰時','巳時','午時','未時','申時','酉時','戌時','亥時']         ;
+const HOUR_START = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21]         ;
+
+function getHourRatings(date      , utcOffset         )             {
+  const stemIndex = getDayStemIndex(date, utcOffset);
+  const noble = NOBLE_BRANCHES[stemIndex];
+  const lu = LU_BRANCH[stemIndex];
+  const voids = VOID_BRANCHES[stemIndex % 5];
+
+  return Array.from({ length: 12 }, (_, i) => {
+    const tags           = [];
+    if (noble.includes(i)) tags.push('贵人');
+    if (lu === i) tags.push('日禄');
+    if (voids.includes(i)) tags.push('空亡');
+
+    const rating             =
+      tags.includes('空亡') ? 'inauspicious' :
+      tags.length > 0 ? 'auspicious' :
+      'neutral';
+
+    return {
+      branchIndex: i,
+      branch: EARTHLY_BRANCHES[i],
+      name: HOUR_NAMES[i],
+      startHour: HOUR_START[i],
+      rating,
+      tags,
+    };
+  });
+}
+
+
+// Derived from lunar day; update to wrap soluna.getMoonPhase once vendored.
+function getMoonPhase(date      , utcOffset         )            {
+  const result = solarToLunar(date, { utcOffset });
+  const lunarDay = result.lunar.day;
+
+  let phase        ;
+  let phaseCN        ;
+
+  if (lunarDay === 1) {
+    phase = 'new moon'; phaseCN = '朔';
+  } else if (lunarDay <= 6) {
+    phase = 'waxing crescent'; phaseCN = '娥眉月';
+  } else if (lunarDay <= 8) {
+    phase = 'first quarter'; phaseCN = '上弦月';
+  } else if (lunarDay <= 14) {
+    phase = 'waxing gibbous'; phaseCN = '盈凸月';
+  } else if (lunarDay <= 16) {
+    phase = 'full moon'; phaseCN = '望';
+  } else if (lunarDay <= 22) {
+    phase = 'waning gibbous'; phaseCN = '亏凸月';
+  } else if (lunarDay <= 23) {
+    phase = 'last quarter'; phaseCN = '下弦月';
+  } else {
+    phase = 'waning crescent'; phaseCN = '残月';
+  }
+
+  return { phase, phaseCN, lunarDay };
+}
+
+
+// 納音五行: 30 pairs covering all 60 sexagenary positions
+const NA_YIN                     = [
+  ['sea gold', '海中金'],       // 0: 甲子/乙丑
+  ['furnace fire', '炉中火'],   // 1: 丙寅/丁卯
+  ['great forest wood', '大林木'], // 2: 戊辰/己巳
+  ['roadside earth', '路旁土'], // 3: 庚午/辛未
+  ['sword edge gold', '剑锋金'], // 4: 壬申/癸酉
+  ['hilltop fire', '山头火'],   // 5: 甲戌/乙亥
+  ['brook water', '涧下水'],    // 6: 丙子/丁丑
+  ['city wall earth', '城头土'], // 7: 戊寅/己卯
+  ['white wax gold', '白蜡金'], // 8: 庚辰/辛巳
+  ['willow wood', '杨柳木'],    // 9: 壬午/癸未
+  ['spring water', '泉中水'],   // 10: 甲申/乙酉
+  ['rooftop earth', '屋上土'],  // 11: 丙戌/丁亥
+  ['thunderbolt fire', '霹雳火'], // 12: 戊子/己丑
+  ['pine wood', '松柏木'],      // 13: 庚寅/辛卯
+  ['flowing water', '长流水'],  // 14: 壬辰/癸巳
+  ['sand gold', '沙中金'],      // 15: 甲午/乙未
+  ['hillside fire', '山下火'],  // 16: 丙申/丁酉
+  ['flat land wood', '平地木'], // 17: 戊戌/己亥
+  ['wall earth', '壁上土'],     // 18: 庚子/辛丑
+  ['gold foil gold', '金箔金'], // 19: 壬寅/癸卯
+  ['lamp fire', '覆灯火'],      // 20: 甲辰/乙巳
+  ['river water', '天河水'],    // 21: 丙午/丁未
+  ['main road earth', '大驿土'], // 22: 戊申/己酉
+  ['hairpin gold', '钗钏金'],   // 23: 庚戌/辛亥
+  ['mulberry wood', '桑柘木'],  // 24: 壬子/癸丑
+  ['ravine water', '大溪水'],   // 25: 甲寅/乙卯
+  ['sand earth', '沙中土'],     // 26: 丙辰/丁巳
+  ['sky fire', '天上火'],       // 27: 戊午/己未
+  ['pomegranate wood', '石榴木'], // 28: 庚申/辛酉
+  ['ocean water', '大海水'],    // 29: 壬戌/癸亥
+];
+
+function getNaYin(pillar        )        {
+  const stem = HEAVENLY_STEMS.indexOf(pillar.stem                                 );
+  const branch = EARTHLY_BRANCHES.indexOf(pillar.branch                                   );
+
+  if (stem < 0 || branch < 0 || stem % 2 !== branch % 2) {
+    return { element: 'unknown', elementCN: '未知' };
+  }
+
+  const k = (((Math.floor((branch - stem) / 2) % 6) + 6) % 6 * 5) % 6;
+  const pos = stem + 10 * k;
+  const naYinIndex = Math.floor(pos / 2);
+  const [element, elementCN] = NA_YIN[naYinIndex];
+  return { element, elementCN };
+}
+
+
+const ANIMALS                     = [
+  ['rat', '鼠'], ['ox', '牛'], ['tiger', '虎'], ['rabbit', '兔'],
+  ['dragon', '龙'], ['snake', '蛇'], ['horse', '马'], ['goat', '羊'],
+  ['monkey', '猴'], ['rooster', '鸡'], ['dog', '狗'], ['pig', '猪'],
+];
+
+// 六害 harm pairs: index → harmed branch index
+const HARM_MAP = [7, 6, 5, 4, 3, 2, 1, 0, 11, 10, 9, 8]         ;
+
+// 六合 six-harmony partner: index → allied branch index
+const SIX_HARMONY = [1, 0, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]         ;
+
+// 三合 three-harmony triads (branch indices that mutually support)
+const THREE_HARMONY                                 = [
+  [8, 0, 4],   // 申子辰 water
+  [11, 3, 7],  // 亥卯未 wood
+  [2, 6, 10],  // 寅午戌 fire
+  [5, 9, 1],   // 巳酉丑 metal
+];
+
+function getDayZodiac(date      , utcOffset         )            {
+  const branch = getDayPillar(date, utcOffset).branch;
+  const branchIndex = EARTHLY_BRANCHES.indexOf(branch                                   );
+  const clashIndex = (branchIndex + 6) % 12;
+  const [animal, animalCN] = ANIMALS[branchIndex];
+  const [clash, clashCN] = ANIMALS[clashIndex];
+  return { animal, animalCN, clash, clashCN };
+}
+
+// for the day's branch, classify each of the 12 zodiac animals as
+// 值日 (self), 冲 (clash), 吉 (harmony via 六合 or 三合 ally), or neutral
+function getDayZodiacRelations(date      , utcOffset         )                   {
+  const branch = getDayPillar(date, utcOffset).branch;
+  const dayIndex = EARTHLY_BRANCHES.indexOf(branch                                   );
+  const clashIndex = (dayIndex + 6) % 12;
+  const triad = THREE_HARMONY.find(t => t.includes(dayIndex)) ?? [];
+
+  return ANIMALS.map(([animal, animalCN], i) => {
+    let relation                 = 'neutral';
+    if (i === dayIndex) relation = 'self';
+    else if (i === clashIndex) relation = 'clash';
+    else if (SIX_HARMONY[dayIndex] === i || triad.includes(i)) relation = 'harmony';
+    return { animal, animalCN, relation };
+  });
+}
+
+function getDayHarm(date      , utcOffset         )          {
+  const branch = getDayPillar(date, utcOffset).branch;
+  const branchIndex = EARTHLY_BRANCHES.indexOf(branch                                   );
+  const harmedIndex = HARM_MAP[branchIndex];
+  return {
+    branch: EARTHLY_BRANCHES[harmedIndex],
+    branchCN: EARTHLY_BRANCHES[harmedIndex],
+  };
+}
+
+
+// 彭祖百忌: stem and branch taboo texts with english translations
+const STEM_TABOOS           = [
+  '甲不开仓，财物耗散',
+  '乙不栽植，千株不长',
+  '丙不修灶，必见灾殃',
+  '丁不剃头，头主生疮',
+  '戊不受田，田主不祥',
+  '己不破券，二比并亡',
+  '庚不经络，织机虚张',
+  '辛不合酱，主人不尝',
+  '壬不泱水，更难提防',
+  '癸不词讼，理弱敌强',
+];
+
+const STEM_TABOOS_EN           = [
+  'do not open storehouses - wealth will scatter',
+  'do not plant - seedlings will not take root',
+  'do not repair stoves - misfortune will follow',
+  'do not cut hair - sores will form on the head',
+  'do not receive land - inauspicious for the landowner',
+  'do not break contracts - both parties will suffer loss',
+  'do not weave - the loom will sit idle',
+  'do not make fermented foods - the host will not taste them',
+  'do not drain or divert water - calamity is hard to prevent',
+  'do not litigate - your case will be weak, the opponent strong',
+];
+
+const BRANCH_TABOOS           = [
+  '子不问卜，自惹祸殃',
+  '丑不冠带，主不还乡',
+  '寅不祭祀，神鬼不尝',
+  '卯不穿井，水泉不香',
+  '辰不哭泣，必主重丧',
+  '巳不远行，财物伏藏',
+  '午不苫盖，屋主更张',
+  '未不服药，毒气入肠',
+  '申不安床，鬼祟入房',
+  '酉不会客，醉坐颠狂',
+  '戌不吃狗，作怪上床',
+  '亥不嫁娶，不利新郎',
+];
+
+const BRANCH_TABOOS_EN           = [
+  'do not divine - misfortune will find you regardless',
+  'do not wear formal attire - the wearer will not return home',
+  'do not hold ceremonies - spirits will not receive the offering',
+  'do not dig wells - the water will not be pure',
+  'do not mourn - another loss will follow',
+  'do not travel far - wealth will remain hidden',
+  'do not repair the roof - the homeowner will face setbacks',
+  'do not take medicine - toxins will enter the body',
+  'do not set up beds - restless spirits will enter the room',
+  'do not receive guests - drunkenness and chaos will follow',
+  'do not eat dog meat - strange occurrences will follow at night',
+  'do not marry - inauspicious for the groom',
+];
+
+function getPengZu(date      , utcOffset         )         {
+  const pillar = getDayPillar(date, utcOffset);
+  const stemIndex = HEAVENLY_STEMS.indexOf(pillar.stem                                 );
+  const branchIndex = EARTHLY_BRANCHES.indexOf(pillar.branch                                   );
+  return {
+    stemTaboo: STEM_TABOOS[stemIndex],
+    stemTabooEN: STEM_TABOOS_EN[stemIndex],
+    branchTaboo: BRANCH_TABOOS[branchIndex],
+    branchTabooEN: BRANCH_TABOOS_EN[branchIndex],
+  };
+}
+
+
+// [喜神, 财神, 福神] directions by day stem index (0=甲 … 9=癸)
+const DIRECTIONS                                                     = [
+  ['northeast', '东北', 'northeast', '东北', 'southwest', '西南'], // 甲
+  ['southeast', '东南', 'southeast', '东南', 'northwest', '西北'], // 乙
+  ['southwest', '西南', 'south',     '南',   'northeast', '东北'], // 丙
+  ['northwest', '西北', 'north',     '北',   'southeast', '东南'], // 丁
+  ['northeast', '东北', 'east',      '东',   'southwest', '西南'], // 戊
+  ['southeast', '东南', 'east',      '东',   'northwest', '西北'], // 己
+  ['southwest', '西南', 'southwest', '西南', 'northeast', '东北'], // 庚
+  ['northwest', '西北', 'southwest', '西南', 'southeast', '东南'], // 辛
+  ['northeast', '东北', 'north',     '北',   'southwest', '西南'], // 壬
+  ['southeast', '东南', 'south',     '南',   'northwest', '西北'], // 癸
+];
+
+function getAuspiciousDirections(date      , utcOffset         )                       {
+  const stem = getDayPillar(date, utcOffset).stem;
+  const stemIndex = HEAVENLY_STEMS.indexOf(stem                                 );
+  const [xi, xiCN, cai, caiCN, fu, fuCN] = DIRECTIONS[stemIndex];
+  return { xi, xiCN, cai, caiCN, fu, fuCN };
+}
+
+// report-only logic: branch relations the app does not compute yet (port to bazi-logic when kept).
+// plain js, pure functions, no imports, so node and a test can load it as is.
+// note: the tables below stay here for now; at port time they move to json files (see the todo in app.md).
+const BRANCHES = [...'子丑寅卯辰巳午未申酉戌亥'];
+const ANIMAL = { 子: ['鼠', 'rat'], 丑: ['牛', 'ox'], 寅: ['虎', 'tiger'], 卯: ['兔', 'rabbit'], 辰: ['龙', 'dragon'], 巳: ['蛇', 'snake'], 午: ['马', 'horse'], 未: ['羊', 'goat'], 申: ['猴', 'monkey'], 酉: ['鸡', 'rooster'], 戌: ['狗', 'dog'], 亥: ['猪', 'pig'] };
+// relation key -> [badge char, english label]; the order is the tint priority
+const REL = { self: ['值日', 'today'], clash: ['冲', 'clash'], harmony: ['合', 'harmony'], harm: ['害', 'harm'], punish: ['刑', 'punishment'], break: ['破', 'break'] };
+
+const BREAKS = ['子酉', '丑辰', '寅亥', '卯午', '巳申', '未戌'];            // 六破 pairs
+const PUNISH_GROUPS = [['寅', '巳', '申'], ['丑', '戌', '未'], ['子', '卯']]; // 三刑 triads and the 子卯 pair
+const SELF_PUNISH = '辰午酉亥';                                              // 自刑: these punish themselves
+
+// branches the day branch punishes (the rest of its group)
+const punishedBy = (day) => PUNISH_GROUPS.filter((g) => g.includes(day)).flatMap((g) => g.filter((x) => x !== day));
+// the branch the day branch breaks
+const brokenBy = (day) => BREAKS.filter((p) => p.includes(day)).map((p) => p.replace(day, ''));
+
+// every relation each of the 12 branches has to the day branch, in REL priority order.
+// relations: the app's per-branch values ('self'|'clash'|'harmony'|'neutral'); harmBranch: the app's day harm branch
+function mergeRelations(day, relations, harmBranch) {
+  const punished = punishedBy(day);
+  const broken = brokenBy(day);
+  return BRANCHES.map((b, i) => {
+    const r = [];
+    if (['self', 'clash', 'harmony'].includes(relations[i])) r.push(relations[i]);
+    if (b === harmBranch) r.push('harm');
+    if (punished.includes(b) || (b === day && SELF_PUNISH.includes(day))) r.push('punish');
+    if (broken.includes(b)) r.push('break');
+    return r;
+  });
+}
+
+// officer ratings, copied from the app's TodayView (the app owns them)
+const OFFICER_RATING = { 建: 'auspicious', 除: 'auspicious', 满: 'auspicious', 平: 'neutral', 定: 'auspicious', 执: 'neutral', 破: 'inauspicious', 危: 'inauspicious', 成: 'auspicious', 收: 'auspicious', 开: 'auspicious', 闭: 'neutral' };
+
+// 十二神 12 day spirits: 青龙 starts on a fixed day branch per month branch, then the order runs forward one branch a day.
+// lucky = 黄道 (auspicious day), unlucky = 黑道.
+const DAY_SPIRITS = [
+  ['青龙', 'azure dragon', true], ['明堂', 'bright hall', true], ['天刑', 'heavenly punishment', false], ['朱雀', 'vermilion bird', false],
+  ['金匮', 'golden cabinet', true], ['天德', 'heavenly virtue', true], ['白虎', 'white tiger', false], ['玉堂', 'jade hall', true],
+  ['天牢', 'heavenly prison', false], ['玄武', 'black tortoise', false], ['司命', 'life governor', true], ['勾陈', 'hook chen', false],
+];
+// day branch index where 青龙 lands, by month branch index (子..亥): 寅申月 子, 卯酉月 寅, 辰戌月 辰, 巳亥月 午, 子午月 申, 丑未月 戌
+const DRAGON_START = [8, 10, 0, 2, 4, 6, 8, 10, 0, 2, 4, 6];
+function daySpirit(monthIdx, dayIdx) {
+  const [cn, en, lucky] = DAY_SPIRITS[(dayIdx - DRAGON_START[monthIdx] + 12) % 12];
+  return { cn, en, lucky };
+}
+
+// 煞方 evil direction of the day, by the day branch's triad: 申子辰 南, 亥卯未 西, 寅午戌 北, 巳酉丑 东
+const SHA = [['申子辰', '南', 'south'], ['亥卯未', '西', 'west'], ['寅午戌', '北', 'north'], ['巳酉丑', '东', 'east']];
+function shaDirection(dayBranch) {
+  const [, cn, en] = SHA.find(([g]) => g.includes(dayBranch));
+  return { cn, en };
+}
+
+// 二十八宿 28 mansions: one per day in a continuous 28-day cycle (never reset), locked to the weekday (28 is a multiple of 7).
+// each: [name, 七曜 element, animal, lucky (吉) or not (凶), english]. luck follows the traditional 吉凶 rhyme.
+const SEVEN = { 日: 0, 月: 1, 火: 2, 水: 3, 木: 4, 金: 5, 土: 6 }; // 七曜 -> weekday (Sun = 0)
+const QUARTERS = ['东方青龙', '北方玄武', '西方白虎', '南方朱雀']; // 7 mansions each, in order
+const MANSIONS = [
+  ['角', '木', '蛟', true, 'horn'], ['亢', '金', '龙', false, 'neck'], ['氐', '土', '貉', false, 'root'], ['房', '日', '兔', true, 'room'],
+  ['心', '月', '狐', false, 'heart'], ['尾', '火', '虎', true, 'tail'], ['箕', '水', '豹', true, 'winnowing basket'],
+  ['斗', '木', '獬', true, 'dipper'], ['牛', '金', '牛', false, 'ox'], ['女', '土', '蝠', false, 'girl'], ['虚', '日', '鼠', false, 'emptiness'],
+  ['危', '月', '燕', false, 'rooftop'], ['室', '火', '猪', true, 'encampment'], ['壁', '水', '貐', true, 'wall'],
+  ['奎', '木', '狼', false, 'legs'], ['娄', '金', '狗', true, 'bond'], ['胃', '土', '雉', true, 'stomach'], ['昴', '日', '鸡', false, 'hairy head'],
+  ['毕', '月', '乌', true, 'net'], ['觜', '火', '猴', false, 'turtle beak'], ['参', '水', '猿', true, 'three stars'],
+  ['井', '木', '犴', true, 'well'], ['鬼', '金', '羊', false, 'ghost'], ['柳', '土', '獐', false, 'willow'], ['星', '日', '马', false, 'star'],
+  ['张', '月', '鹿', true, 'extended net'], ['翼', '火', '蛇', false, 'wings'], ['轸', '水', '蚓', true, 'chariot'],
+];
+// anchor: 2026-10-10 is 柳 (index 23), read from a published almanac; every other date counts days from it
+const ANCHOR = { date: Date.UTC(2026, 9, 10), index: 23 };
+function mansion(isoDate) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const days = Math.round((Date.UTC(y, m - 1, d) - ANCHOR.date) / 86400000);
+  const i = (((ANCHOR.index + days) % 28) + 28) % 28;
+  const [cn, element, animal, lucky, en] = MANSIONS[i];
+  return { index: i, cn, element, animal, lucky, en, quarter: QUARTERS[Math.floor(i / 7)] };
+}
+const weekdayOfElement = (el) => SEVEN[el];
+
+// lunar day and month labels, shared by the day assembly and the life chart tab
+const LUNAR_DAYS = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+const LUNAR_MONTHS = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+
+// assembles one day of the app's output for a date (YYYY-MM-DD) from bazi-logic (L) and the report-only logic (R).
+// the page and the test both build a day through this function, so they cannot drift apart.
+// pure apart from the clock's time zone: it reads local date parts. hour pillars are taken at 00:00, 02:00 ... 22:00 (one per branch).
+function makeComputeDay(L, R) {
+  const pair = (p) => [p.stem, p.branch];
+  return function computeDay(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const noon = new Date(y, m - 1, d, 12);
+    const day = L.getDayPillar(noon);
+    const lunar = L.getLunarDate(noon);
+    const zodiac = L.getDayZodiacRelations(noon);
+    const harm = L.getDayHarm(noon);
+    const moon = L.getMoonPhase(noon);
+    const naYin = L.getNaYin(day);
+    const hourPillars = R.BRANCHES.map((_, i) => {
+      const t = new Date(y, m - 1, d, i * 2);
+      return pair(L.getHourPillar(t, L.getDayStemIndex(t)));
+    });
+    return {
+      date: iso,
+      lunar: `${lunar.isLeapMonth ? '闰' : ''}${R.LUNAR_MONTHS[lunar.month - 1]}月 · ${R.LUNAR_DAYS[lunar.day - 1]}`,
+      term: L.getSolarTerm(noon),
+      pillars: { year: pair(L.getYearPillar(noon)), month: pair(L.getMonthPillar(noon)), day: pair(day) },
+      hourPillars,
+      officer: L.getDailyOfficer(noon),
+      sha: R.shaDirection(day.branch),
+      mansion: R.mansion(iso),
+      spirit: R.daySpirit(L.getMonthBranchIndex(noon), R.BRANCHES.indexOf(day.branch)),
+      hours: L.getHourRatings(noon).map((h) => ({ bi: h.branchIndex, name: h.name, start: h.startHour, rating: h.rating, tags: h.tags })),
+      festivals: L.getFestivals(noon),
+      moon: { cn: moon.phaseCN, en: moon.phase },
+      naYin: { cn: naYin.elementCN, en: naYin.element },
+      pengZu: L.getPengZu(noon),
+      dirs: L.getAuspiciousDirections(noon),
+      rels: R.mergeRelations(day.branch, zodiac.map((z) => z.relation), harm.branch),
+    };
+  };
+}
+
+const DATA = {"meta":{"officerInfo":{"建":{"yi":[{"cn":"出行","en":"travel"},{"cn":"修造","en":"construction"},{"cn":"开工","en":"starting projects"},{"cn":"栽种","en":"planting"}],"ji":[{"cn":"拆除","en":"demolition"},{"cn":"词讼","en":"litigation"},{"cn":"嫁娶","en":"marriage"}],"desc":{"cn":"阳气旺盛，利于开工动土、出行修造，诸事进取宜早动。","en":"favorable for starting projects, travel, and construction."}},"除":{"yi":[{"cn":"求医","en":"medical treatment"},{"cn":"清洁","en":"clearing space"},{"cn":"除虫","en":"pest removal"},{"cn":"沐浴","en":"cleansing"}],"ji":[{"cn":"大典","en":"grand ceremonies"},{"cn":"嫁娶","en":"marriage"},{"cn":"移徙","en":"moving house"}],"desc":{"cn":"宜求医治病、清洁除秽、祛除旧障，扫旧迎新，洁净为要。","en":"good for removing obstacles, medical treatment, and clearing space."}},"满":{"yi":[{"cn":"嫁娶","en":"weddings"},{"cn":"移徙","en":"moving house"},{"cn":"开市","en":"opening business"},{"cn":"祭祀","en":"ceremonies"}],"ji":[{"cn":"词讼","en":"litigation"},{"cn":"安葬","en":"funerals"}],"desc":{"cn":"阳气充盈，宜嫁娶移徙、开市纳财、祭祀庆典，诸事丰盛。","en":"auspicious for ceremonies, moving house, and wealth activities."}},"平":{"yi":[{"cn":"日常","en":"routine tasks"},{"cn":"出行","en":"travel"},{"cn":"会亲友","en":"meetings"}],"ji":[{"cn":"大事","en":"major decisions"},{"cn":"祭祀","en":"ceremonies"}],"desc":{"cn":"气势平和，宜日常起居、出行会亲友，不宜大事作为。","en":"neutral energy - suitable for routine tasks."}},"定":{"yi":[{"cn":"签约","en":"signing contracts"},{"cn":"解纷","en":"settling disputes"},{"cn":"移徙","en":"moving house"}],"ji":[{"cn":"出行","en":"travel"},{"cn":"词讼","en":"litigation"}],"desc":{"cn":"气定神闲，宜签约立契、安家定居、化解纷争，以稳为要。","en":"good for signing agreements and settling disputes."}},"执":{"yi":[{"cn":"收债","en":"collecting debts"},{"cn":"整理","en":"organizing"},{"cn":"纳财","en":"managing resources"}],"ji":[{"cn":"开业","en":"opening new ventures"},{"cn":"出行","en":"travel"}],"desc":{"cn":"宜收纳整理、纳财收债，持守固本，巩固已有资源。","en":"favorable for collecting, organizing, and managing resources."}},"破":{"yi":[{"cn":"拆除","en":"demolition"},{"cn":"手术","en":"surgery"},{"cn":"了结纠纷","en":"ending disputes"}],"ji":[{"cn":"嫁娶","en":"marriage"},{"cn":"修造","en":"construction"},{"cn":"出行","en":"travel"},{"cn":"诸事不宜","en":"most activities"}],"desc":{"cn":"诸事不利，仅宜拆除旧物、手术了结，忌一切新事开展。","en":"inauspicious for most activities. suited only for demolition or endings."}},"危":{"yi":[{"cn":"静养","en":"rest"},{"cn":"祈福","en":"prayer"},{"cn":"静修","en":"meditation"}],"ji":[{"cn":"出行","en":"travel"},{"cn":"修造","en":"construction"},{"cn":"嫁娶","en":"marriage"},{"cn":"开业","en":"starting ventures"}],"desc":{"cn":"宜静不宜动，避免出行冒险，以静养祈福为要，待时而动。","en":"avoid travel and risky undertakings. rest and observe."}},"成":{"yi":[{"cn":"嫁娶","en":"weddings"},{"cn":"开市","en":"opening business"},{"cn":"修造","en":"construction"},{"cn":"出行","en":"travel"},{"cn":"签约","en":"signing contracts"}],"ji":[{"cn":"词讼","en":"litigation"}],"desc":{"cn":"吉星拱照，诸事皆宜，尤利嫁娶开市、签约出行，大吉之日。","en":"one of the most auspicious days - favorable for nearly all endeavors."}},"收":{"yi":[{"cn":"收获","en":"harvesting"},{"cn":"纳财","en":"collecting payments"},{"cn":"入仓","en":"storing goods"},{"cn":"成交","en":"closing deals"}],"ji":[{"cn":"安葬","en":"funerals"},{"cn":"动土","en":"starting construction"}],"desc":{"cn":"宜收获入仓、纳财成交，能量内聚，适合回收整合资源。","en":"good for harvesting, receiving payments, and gathering."}},"开":{"yi":[{"cn":"开张","en":"new openings"},{"cn":"开业","en":"launches"},{"cn":"出行","en":"travel"},{"cn":"修造","en":"construction"},{"cn":"嫁娶","en":"weddings"}],"ji":[{"cn":"安葬","en":"funerals"},{"cn":"落葬","en":"burial"}],"desc":{"cn":"诸事开张，宜开业出行、嫁娶修造，生机勃发，万象更新。","en":"auspicious for new openings, launches, and beginnings."}},"闭":{"yi":[{"cn":"收藏","en":"storing"},{"cn":"封存","en":"sealing"},{"cn":"结账","en":"closing accounts"}],"ji":[{"cn":"开业","en":"new ventures"},{"cn":"嫁娶","en":"weddings"},{"cn":"出行","en":"travel"}],"desc":{"cn":"宜收藏封存、结账了结，关闭循环，巩固守成。","en":"favorable for closing, sealing, and storing."}}},"lunarDays":["初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"],"lunarMonths":["正","二","三","四","五","六","七","八","九","十","冬","腊"],"rel":{"self":["值日","today"],"clash":["冲","clash"],"harmony":["合","harmony"],"harm":["害","harm"],"punish":["刑","punishment"],"break":["破","break"]},"officerRating":{"建":"auspicious","除":"auspicious","满":"auspicious","平":"neutral","定":"auspicious","执":"neutral","破":"inauspicious","危":"inauspicious","成":"auspicious","收":"auspicious","开":"auspicious","闭":"neutral"},"animals":[{"b":"子","cn":"鼠","en":"rat"},{"b":"丑","cn":"牛","en":"ox"},{"b":"寅","cn":"虎","en":"tiger"},{"b":"卯","cn":"兔","en":"rabbit"},{"b":"辰","cn":"龙","en":"dragon"},{"b":"巳","cn":"蛇","en":"snake"},{"b":"午","cn":"马","en":"horse"},{"b":"未","cn":"羊","en":"goat"},{"b":"申","cn":"猴","en":"monkey"},{"b":"酉","cn":"鸡","en":"rooster"},{"b":"戌","cn":"狗","en":"dog"},{"b":"亥","cn":"猪","en":"pig"}]}};
+// browser ui for the report: renders one day at a time, computed in the page by the app's own code (bundled by report.mjs). plain js, no deps.
+const { meta } = DATA; // static tables only (宜/忌 per officer, labels); every day is computed live below
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayIso = iso(new Date());
+// soluna's tables cover 1900 to 2100, but its day pillar is empty before 1970 (a negative-modulo bug, see app.md), and the almanac
+// needs the day pillar, so the almanac starts at 1970 until soluna is fixed
+const RANGE = { min: '1970-01-01', max: '2099-12-31' };
+const clampIso = (s) => (s < RANGE.min ? RANGE.min : s > RANGE.max ? RANGE.max : s); // iso dates compare correctly as strings
+const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n, 12)); };
+// one day of the app's output for any date: the functions come from the inlined bazi-logic, soluna and the report-only logic
+const computeDay = makeComputeDay(
+  { getDayPillar, getLunarDate, getDayZodiacRelations, getDayHarm, getMoonPhase, getNaYin, getHourPillar, getDayStemIndex, getYearPillar, getMonthPillar, getSolarTerm, getDailyOfficer, getHourRatings, getFestivals, getPengZu, getAuspiciousDirections, getMonthBranchIndex },
+  { BRANCHES, LUNAR_DAYS, LUNAR_MONTHS, mergeRelations, daySpirit, shaDirection, mansion },
+);
+const nowBranch = () => Math.floor((new Date().getHours() + 1) / 2) % 12;
+let cur = clampIso(todayIso); // the date shown, as YYYY-MM-DD
+let hourSel = null; // chosen hour branch; null = current hour on today, 子 on other days (as the app does)
+
+const pillarCard = (p, lbl, now) => `<div class="pillar${now ? ' now' : ''}"><div class="glyph cjk">${esc(p[0])}<br>${esc(p[1])}</div><div class="lbl">${lbl}</div></div>`;
+const badge = (k) => `<i class="bd ${k}">${meta.rel[k][0]}</i>`;
+// card title: the cjk name leads, the english is a small dim subtitle, an optional chip carries a detail
+const ct = (cn, en, chip = '') => `<div class="ct"><span class="cn cjk">${esc(cn)}</span><span class="en">${esc(en)}</span>${chip ? `<span class="chip cjk">${esc(chip)}</span>` : ''}</div>`;
+const sec = (title, body) => `<section><div class="section-title">${title}</div>${body}</section>`;
+
+function render() {
+  const d = computeDay(cur);
+  const hb = hourSel ?? (d.date === todayIso ? nowBranch() : 0);
+  const dt = new Date(d.date + 'T12:00');
+  const label = dt.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const rating = meta.officerRating[d.officer.name] ?? 'neutral';
+  document.getElementById('title').textContent = label;
+  const pick = document.getElementById('pick');
+  pick.min = RANGE.min; pick.max = RANGE.max; pick.value = d.date;
+
+  const blocks = meta.animals.map((a, i) => `<div class="z ${d.rels[i][0] ?? 'neutral'}" title="${esc(a.en)}: ${d.rels[i].map((k) => meta.rel[k][1]).join(', ') || 'none'}"><span class="zc cjk">${esc(a.cn)}</span><span class="zb cjk">${a.b}</span><span class="badges">${d.rels[i].map(badge).join('')}</span></div>`).join('');
+  const legend = Object.keys(meta.rel).map((k) => `<span class="lg">${badge(k)} ${meta.rel[k][1]}</span>`).join('');
+  const info = meta.officerInfo[d.officer.name];
+  const chip = (k) => (x) => `<span class="yj ${k} cjk">${esc(x.cn)} <small>${esc(x.en)}</small></span>`;
+  const clash = meta.animals[d.rels.findIndex((r) => r.includes('clash'))];
+  const dirs = [['喜神', d.dirs.xiCN, d.dirs.xi], ['財神', d.dirs.caiCN, d.dirs.cai], ['福神', d.dirs.fuCN, d.dirs.fu]];
+
+  const base = [
+    sec('date', `<div class="card"><div class="big">${esc(label)}</div><div class="cjk">${esc(d.lunar)}${d.term ? ` · 节气 ${esc(d.term)}` : ''}</div></div>`),
+    sec('festivals', d.festivals.length ? d.festivals.map((f) => `<div class="fest"><span class="cjk">${esc(f.name)}</span><span class="mut">${esc(f.english)}${f.isHoliday ? ' · holiday' : ''}${f.extra ? ' · ' + esc(f.extra) : ''}</span></div>`).join('') : '<p class="mut">none</p>'),
+    sec('day verdict', `<div class="grid2"><div class="card">${ct('建除', 'daily officer')}<div class="big cjk">${esc(d.officer.name)} <span class="mut">${esc(d.officer.english)}</span></div><span class="pill ${rating}">${rating}</span></div>
+      <div class="card">${ct('十二神', 'day spirit', d.spirit.lucky ? '黄道' : '黑道')}<div class="big cjk">${esc(d.spirit.cn)} <span class="mut">${esc(d.spirit.en)}</span></div><span class="pill ${d.spirit.lucky ? 'auspicious' : 'inauspicious'}">${d.spirit.lucky ? 'auspicious' : 'inauspicious'}</span></div></div>`),
+    sec('do and avoid', `<div class="card"><span class="cjk">${esc(info.desc.cn)}</span><span class="mut">${esc(info.desc.en)}</span></div>
+      <div class="grid2">
+      <div class="card">${ct('宜', 'do')}<div>${info.yi.map(chip('yi')).join('')}</div></div>
+      <div class="card">${ct('忌', 'avoid')}<div>${info.ji.map(chip('ji')).join('')}</div></div></div>
+      <p class="mut">from the app: one list per daily officer. a full almanac also adds the stars, so its lists are longer and differ.</p>`),
+    sec('clash', `<div class="card">${ct('冲煞', 'clash and evil direction')}<div class="big cjk">冲 ${esc(clash.cn)} <span class="mut">${esc(clash.en)}</span> &nbsp; 煞 ${esc(d.sha.cn)} <span class="mut">${esc(d.sha.en)}</span></div></div>`),
+    sec('four pillars', `<div class="pillars">${pillarCard(d.pillars.year, 'year')}${pillarCard(d.pillars.month, 'month')}${pillarCard(d.pillars.day, 'day')}${pillarCard(d.hourPillars[hb], 'hour', true)}</div>`),
+    sec('hours', `<div class="hours">${d.hours.map((h) => `<div class="hour${h.bi === hb ? ' now' : ''}" data-b="${h.bi}"><span class="cjk">${esc(h.name)}</span><span class="t">${String(h.start).padStart(2, '0')}:00</span><span class="pill ${h.rating}">${h.rating}</span>${h.tags.length ? `<span class="tag cjk">${esc(h.tags.join(' · '))}</span>` : ''}</div>`).join('')}</div><p class="mut">click an hour to see its pillar</p>`),
+  ];
+  const more = [
+    sec('day quality', `<div class="grid2"><div class="card">${ct('二十八宿', '28 mansions', d.mansion.quarter)}<div class="big cjk">${esc(d.mansion.cn)} <span class="mut">${esc(d.mansion.en)}</span></div><span class="cjk mut">${esc(d.mansion.element)} · ${esc(d.mansion.animal)}</span><span class="pill ${d.mansion.lucky ? 'auspicious' : 'inauspicious'}">${d.mansion.lucky ? 'auspicious' : 'inauspicious'}</span></div>
+      <div class="card">${ct('月相', 'moon phase')}<span><span class="cjk big">${esc(d.moon.cn)}</span> <span class="mut">${esc(d.moon.en)}</span></span></div>
+      <div class="card">${ct('納音', 'na yin')}<span><span class="cjk big">${esc(d.naYin.cn)}</span> <span class="mut">${esc(d.naYin.en)}</span></span></div></div>`),
+    sec('taboos', `<div class="card">${ct('彭祖百忌', 'peng zu taboos')}<span class="cjk">${esc(d.pengZu.stemTaboo)}</span><span class="mut">${esc(d.pengZu.stemTabooEN)}</span><span class="cjk">${esc(d.pengZu.branchTaboo)}</span><span class="mut">${esc(d.pengZu.branchTabooEN)}</span></div>`),
+    sec('direction and relations', `<div class="card">${ct('生肖吉冲', 'zodiac relations to day branch', d.pillars.day[1])}<div class="zodiac">${blocks}</div><div class="legend">${legend}</div></div>
+      <div class="card">${ct('方位', 'auspicious directions')}<div class="grid2">${dirs.map(([k, cn, en]) => `<div><div class="mut cjk">${k}</div><div class="cjk big">${esc(cn)}</div><div class="mut">${esc(en)}</div></div>`).join('')}</div></div>`),
+  ];
+  // the detail sections follow the base on the same page, under a heading
+  document.getElementById('out').innerHTML = base.join('') + `<h2 class="part">more detail</h2>` + more.join('');
+}
+
+// controls: prev/next/today buttons, the date picker, and clicking an hour
+document.addEventListener('click', (e) => {
+  const step = e.target.closest('[data-step]');
+  const hour = e.target.closest('[data-b]');
+  if (step) { cur = clampIso(addDays(cur, Number(step.dataset.step))); hourSel = null; render(); }
+  else if (e.target.closest('[data-today]')) { cur = clampIso(todayIso); hourSel = null; render(); }
+  else if (hour) { hourSel = Number(hour.dataset.b); render(); }
+});
+document.getElementById('pick').addEventListener('change', (e) => {
+  if (e.target.value) { cur = clampIso(e.target.value); hourSel = null; render(); }
+});
+render();
+
+// tabs: almanac and bazi are separate features
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]');
+  if (!t) return;
+  for (const b of document.querySelectorAll('[data-tab]')) b.classList.toggle('on', b === t);
+  for (const n of ['almanac', 'bazi']) document.getElementById('tab-' + n).hidden = n !== t.dataset.tab;
+});
+
+// life chart tab (bazi), for anyone's birth time: any birth date is possible, so soluna runs live in the page (inlined above, as solarToLunar)
+const birthIn = document.getElementById('birth');
+const whoIn = document.getElementById('who');
+const peopleBox = document.getElementById('people');
+// saved people live in this browser only (localStorage), never sent anywhere
+const store = {
+  read() { try { return JSON.parse(localStorage.getItem('fo.people')) ?? []; } catch { return []; } },
+  write(list) { try { localStorage.setItem('fo.people', JSON.stringify(list)); } catch { /* storage blocked: the list just will not persist */ } },
+};
+let people = store.read();
+const renderPeople = () => { peopleBox.innerHTML = people.map((p, i) => `<span class="person"><button data-person="${i}">${esc(p.name)}</button><button data-del="${i}" title="remove">×</button></span>`).join(''); };
+function renderBazi() {
+  const out = document.getElementById('bazi-out');
+  if (!birthIn.value) { out.innerHTML = '<p class="mut">enter a birth date and time (uses this device\'s time zone)</p>'; return; }
+  const when = new Date(birthIn.value);
+  const { baZi: b, lunar: l } = solarToLunar(when);
+  const lunar = `${l.isLeapMonth ? '闰' : ''}${meta.lunarMonths[l.month - 1]}月 · ${meta.lunarDays[l.day - 1]}`;
+  const pc = (p, lbl) => (p && p.stem ? pillarCard([p.stem, p.branch], lbl) : '');
+  out.innerHTML = sec(whoIn.value.trim() ? `for ${esc(whoIn.value.trim())}` : 'birth', `<div class="card"><div class="big">${esc(when.toLocaleString('en-GB'))}</div><div class="cjk">农历 ${esc(lunar)}</div></div>`)
+    + sec('八字 four pillars', `<div class="pillars">${pc(b.year, 'year')}${pc(b.month, 'month')}${pc(b.day, 'day (self)')}${pc(b.hour, 'hour')}</div><p class="mut">${b.day && b.day.stem ? '' : 'the day and hour pillars are not available for births before 1970 (a known gap in the calendar library, soluna). '}the day stem is the day master (日主)</p>`);
+}
+birthIn.addEventListener('input', renderBazi);
+// default to the current date and time, so the tab opens on today's chart
+const nowD = new Date();
+birthIn.value = `${iso(nowD)}T${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
+renderBazi();
+renderPeople();
+whoIn.addEventListener('input', renderBazi);
+// save, load and remove people
+document.addEventListener('click', (e) => {
+  const sel = e.target.closest('[data-person]');
+  const del = e.target.closest('[data-del]');
+  if (e.target.closest('#save')) {
+    const name = whoIn.value.trim();
+    if (name && birthIn.value) { people = [...people.filter((p) => p.name !== name), { name, birth: birthIn.value }]; store.write(people); renderPeople(); }
+  } else if (sel) { const p = people[Number(sel.dataset.person)]; whoIn.value = p.name; birthIn.value = p.birth; renderBazi(); }
+  else if (del) { people = people.filter((_, i) => i !== Number(del.dataset.del)); store.write(people); renderPeople(); }
+});
+
+// theme: system (follows the device), light or dark; the choice is kept in local storage
+const root = document.documentElement;
+function setTheme(t) {
+  if (t === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+  for (const b of document.querySelectorAll('[data-theme-set]')) b.classList.toggle('on', b.dataset.themeSet === t);
+  try { localStorage.setItem('fo.theme', t); } catch { /* storage blocked: the choice just will not persist */ }
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-theme-set]'); if (b) setTheme(b.dataset.themeSet); });
+setTheme((() => { try { return localStorage.getItem('fo.theme') || 'system'; } catch { return 'system'; } })());
+
+// export and import: a plain json backup file, so saved people survive clearing the browser
+const msg = (text) => { document.getElementById('people-msg').textContent = text; };
+const validPerson = (p) => p && typeof p.name === 'string' && p.name.trim() && p.name.length <= 100 && typeof p.birth === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p.birth);
+document.getElementById('export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ app: 'theforestorigin-prototype', people }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'life-chart-people.json'; a.click(); URL.revokeObjectURL(a.href);
+  msg(`exported ${people.length} people`);
+});
+document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import').click());
+document.getElementById('import').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    // keep only well-formed entries; an imported name replaces a saved one with the same name
+    const incoming = (Array.isArray(data) ? data : data.people ?? []).filter(validPerson).map((p) => ({ name: p.name.trim(), birth: p.birth }));
+    people = [...people.filter((p) => !incoming.some((q) => q.name === p.name)), ...incoming];
+    store.write(people); renderPeople(); msg(`imported ${incoming.length} people`);
+  } catch { msg('could not read that file'); }
+  e.target.value = '';
+});
+
+</script>
+</body>
+</html>
