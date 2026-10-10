@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<!-- ai training and scraping opt-out. these tags are a request that well-behaved crawlers honour, not a technical block -->
+<meta name="robots" content="noai, noimageai">
+<meta name="googlebot" content="noindex, nofollow, noai, noimageai">
+<meta name="ClaudeBot" content="noindex, nofollow">
+<meta name="anthropic-ai" content="noindex, nofollow">
+<meta name="GPTBot" content="noindex, nofollow">
+<meta name="CCBot" content="noindex, nofollow">
+<meta name="Google-Extended" content="noindex, nofollow">
+<meta name="PerplexityBot" content="noindex, nofollow">
+<meta name="tdm-reservation" content="1">
 <title>the forest origin app prototype</title>
 <style>
 /* base look for generated html in this hat: fonts, text, titles, backgrounds, colour tokens. dark only. from weekly-brain-optimisation/audit.html.
@@ -146,6 +156,15 @@ footer { font-family: var(--mono); font-size: 0.74rem; color: var(--text-dim); b
 .theme button { font: inherit; font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: none; border: 0; color: var(--text-dim); cursor: pointer; }
 .theme button.on { background: var(--surface-2); color: var(--text); }
 .disclaimer { border-left: 2px solid var(--border); padding-left: 12px; font-size: 0.85rem; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill-btn { font: inherit; font-family: var(--mono); font-size: 0.8rem; padding: 6px 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.pill-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.pill-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.pill-btn small { color: var(--text-dim); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; }
+.controls select { font: inherit; font-family: var(--mono); font-size: 0.8rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; }
+.day-row { text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.day-row:hover { border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -157,7 +176,7 @@ footer { font-family: var(--mono); font-size: 0.74rem; color: var(--text-dim); b
     </div>
     <p class="dek">what the app shows, computed by the app's own bazi-logic. two parts: the almanac for any day in the precomputed range, and the life chart (bazi) for anyone's birth time.</p>
   </header>
-  <nav class="tabs"><button data-tab="almanac" class="on">almanac</button><button data-tab="bazi">life chart</button></nav>
+  <nav class="tabs"><button data-tab="almanac" class="on">almanac</button><button data-tab="bazi">life chart</button><button data-tab="finder">day finder</button></nav>
   <div id="tab-almanac" class="page" style="padding:0">
     <h1 id="title"></h1>
     <div class="datebar">
@@ -170,6 +189,14 @@ footer { font-family: var(--mono); font-size: 0.74rem; color: var(--text-dim); b
     </div>
     <div id="out" class="page" style="padding:0"></div>
   </div>
+  <div id="tab-finder" class="page" style="padding:0" hidden>
+    <div id="pills" class="pills"></div>
+    <div class="controls">
+      <label class="mut">from <input type="date" id="f-from"></label>
+      <label class="mut">for <select id="f-days"><option value="30">30</option><option value="60">60</option><option value="90" selected>90</option><option value="180">180</option><option value="365">365</option></select> days</label>
+    </div>
+    <div id="finder-out" class="page" style="padding:0"></div>
+  </div>
   <div id="tab-bazi" class="page" style="padding:0" hidden>
     <div class="controls"><input type="text" id="who" placeholder="for (name)"><input type="datetime-local" id="birth"><button id="save">save</button></div>
     <div id="people" class="people"></div>
@@ -178,7 +205,7 @@ footer { font-family: var(--mono); font-size: 0.74rem; color: var(--text-dim); b
     <div id="bazi-out" class="page" style="padding:0"></div>
   </div>
   <p class="mut disclaimer">for culture and reflection, not advice. this is a preview: the almanac and chart rules are traditional, only spot-checked, and may contain errors. nothing here is medical, legal, financial or other professional advice.</p>
-  <footer>computed live in this page, almanac for 1970 to 2099 (soluna's day pillar is empty before 1970); generated 2026-10-10T14:50:13.182Z; day rolls over at 23:00; hour pillar follows the selected hour</footer>
+  <footer>computed live in this page, almanac for 1970 to 2099 (soluna's day pillar is empty before 1970); generated 2026-10-10T16:33:31.853Z; day rolls over at 23:00; hour pillar follows the selected hour</footer>
 </div>
 <script type="module">
 const { solarToLunar, lunarToSolar, getTimePeriod, calculateLunarFromSolar, calculateSolarFromLunar, getSolarTermsForYear } = (() => {
@@ -1821,6 +1848,150 @@ const weekdayOfElement = (el) => SEVEN[el];
 const LUNAR_DAYS = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
 const LUNAR_MONTHS = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
 
+// 神煞 stars for a day, and the activity rules that use them. every rule is quoted in SOURCES.md from 欽定協紀辨方書.
+// plain js, pure functions. month numbers are 月建 months counted by solar term: 正月 is the 寅 month (m = 1).
+// branch indexes: 子0 丑1 寅2 卯3 辰4 巳5 午6 未7 申8 酉9 戌10 亥11.
+const BRANCH_CHARS = '子丑寅卯辰巳午未申酉戌亥';
+const wrap = (n, k) => ((n % k) + k) % k;
+const cycleAt = (list, m) => list[(m - 1) % list.length];
+const monthNumber = (monthBranchIdx) => wrap(monthBranchIdx - 2, 12) + 1;
+
+// stars that sit on one fixed day branch each month
+const BRANCH_STAR = {
+  五富: (m) => cycleAt([11, 2, 5, 8], m), // 正月起亥順行四孟
+  劫煞: (m) => cycleAt([11, 8, 5, 2], m), // 月劫煞: 正月起亥逆行四孟
+  災煞: (m) => cycleAt([0, 9, 6, 3], m), // 月災煞: 子 酉 午 卯 from 正月, read from the book's month headers (卷二十至三十一); 天火 is a different star
+  月煞: (m) => cycleAt([1, 10, 7, 4], m), // 正月起丑逆行四季
+  月害: (m) => wrap(5 - (m - 1), 12), // 正月起巳逆行十二辰
+  月厭: (m) => wrap(10 - (m - 1), 12), // 地火: 正月起戌逆行十二辰
+  大時: (m) => cycleAt([3, 0, 9, 6], m), // 咸池: 正月起卯逆行四仲 (卷六)
+  天吏: (m) => cycleAt([9, 6, 3, 0], m), // 正月起酉逆行四仲 (卷六)
+  驛馬: (m) => cycleAt([8, 5, 2, 11], m), // 正月起申逆行四孟 (卷六)
+  天馬: (m) => cycleAt([6, 8, 10, 0, 2, 4], m), // 正月起午順行六陽辰 (卷六)
+  歸忌: (m) => cycleAt([1, 2, 0], m), // 孟月丑 仲月寅 季月子 (卷六)
+  往亡: (m) => cycleAt([2, 5, 8, 11, 3, 6, 9, 0, 4, 7, 10, 1], m), // 孟月 仲月 季月 by the book's commentary: 正二三四月四孟 五六七八月四仲 九十十一十二月四季
+  天賊: (m) => wrap(1 - (m - 1), 12), // 正月在丑逆行十二辰 (卷六)
+  土符: (m) => [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 0][m - 1], // 正月丑 二月巳 三月酉 四月寅 ... (卷六)
+  厭對: (m) => wrap(4 - (m - 1), 12), // 正月起辰逆行十二辰 (卷四)
+  九空: (m) => cycleAt([4, 1, 10, 7], m), // 正月在辰逆行四季 (卷五)
+};
+const TIANYUAN = ['甲午', '甲戌', '乙酉', '丙子', '丁丑', '戊午', '甲寅', '丙辰', '辛卯', '戊辰', '甲子', '癸未']; // 天願, a day pillar per month
+const SIFEI = [['庚申', '辛酉'], ['壬子', '癸亥'], ['甲寅', '乙卯'], ['丙午', '丁巳']]; // 四廢 by season: spring, summer, autumn, winter
+const STAR_PUNISH = [3, 10, 5, 0, 4, 8, 6, 1, 2, 9, 7, 11]; // 歲刑 target by branch; 辰午酉亥 punish themselves
+const STAR_SIX_HARMONY = [1, 0, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]; // 六合 partner by branch
+
+// 德 stars per month (正月 to 十二月), read from the book's month headers (卷二十至三十一): [天德, 天德合, 月德, 月德合]
+// a 天德 given as a direction (坤 乾 艮 巽) is the branch 申 亥 寅 巳 and has no 天德合 that month; 二月 五月 八月 十一月
+const DE_STARS = [
+  ['丁', '壬', '丙', '辛'], ['申', '', '甲', '己'], ['壬', '丁', '壬', '丁'], ['辛', '丙', '庚', '乙'],
+  ['亥', '', '丙', '辛'], ['甲', '己', '甲', '己'], ['癸', '戊', '壬', '丁'], ['寅', '', '庚', '乙'],
+  ['丙', '辛', '丙', '辛'], ['乙', '庚', '甲', '己'], ['巳', '', '壬', '丁'], ['庚', '乙', '庚', '乙'],
+];
+// the other four cancelers, from 卷五 (歴例): 天赦 by season, 月恩 stem by month, 四相 stems by season, 時德 branch by season
+const TIANSHE = ['戊寅', '甲午', '戊申', '甲子'];
+const YUEEN = ['丙', '丁', '庚', '己', '戊', '辛', '壬', '癸', '庚', '乙', '甲', '辛'];
+const SIXIANG = ['丙丁', '戊己', '壬癸', '甲乙'];
+const SHIDE = ['午', '辰', '子', '寅'];
+// 卷五 歴例, by season (spring to winter): 民日 branch; 四耗 and 四忌 and 四窮 pillars
+const MINRI = ['午', '酉', '子', '卯'];
+const SIHAO = ['壬子', '乙卯', '戊午', '辛酉'];
+const SIJI = ['甲子', '丙子', '庚子', '壬子']; // the book: 四忌 春甲子 夏丙子 秋庚子 冬壬子
+const SIQIONG = ['乙亥', '丁亥', '辛亥', '癸亥'];
+// 五墓: [months, pillar] 正二月乙未 四五月丙戌 七八月辛丑 十月十一月壬辰 四季月 (3 6 9 12) 戊辰
+const WUMU = [[[1, 2], '乙未'], [[4, 5], '丙戌'], [[7, 8], '辛丑'], [[10, 11], '壬辰'], [[3, 6, 9, 12], '戊辰']];
+const OFFICER_DAYS = { 建: '建日', 满: '滿日', 闭: '閉日', 成: '成日', 开: '開日' };
+// 地囊: two day pillars per month (卷六 歴例)
+const DINANG = ['庚子庚午', '癸未癸丑', '甲子甲寅', '己卯己丑', '戊辰戊午', '癸未癸巳', '丙寅丙申', '丁卯丁巳', '戊辰戊子', '庚戌庚子', '辛未辛酉', '乙酉乙未'];
+const TIANXI = ['戌', '丑', '辰', '未']; // 天喜 by season (卷四)
+const WANGRI = ['卯', '午', '酉', '子']; // 王日 by season, with the book's note that the old 官日 is now called 王日 (卷五)
+// 陰陽不將: day pillars per month, 正月 to 十二月 (卷四 歴例; one typo in the Wikisource text, 癸己 in 八月, is read as 癸巳)
+const BUJIANG = [
+  '辛亥辛丑辛卯庚子庚寅己亥己丑己卯丁亥丁丑丁卯丙子丙寅',
+  '庚戌庚子庚寅己亥己丑丁亥丁丑丙戌丙子丙寅乙亥乙丑',
+  '己酉己亥己丑丁酉丁亥丁丑丙戌丙子乙酉乙亥乙丑甲戌甲子',
+  '丁酉丁亥丙申丙戌丙子乙酉乙亥甲申甲戌甲子戊申戊戌戊子',
+  '丙申丙戌乙未乙酉乙亥甲申甲戌戊申戊戌癸未癸酉癸亥',
+  '乙未乙酉甲午甲申甲戌戊午戊申戊戌癸未癸酉壬午壬申壬戌',
+  '乙巳乙未乙酉甲午甲申戊午戊申癸巳癸未癸酉壬午壬申',
+  '甲辰甲午甲申戊辰戊午戊申癸巳癸未壬辰壬午壬申辛巳辛未',
+  '戊辰戊午癸卯癸巳癸未壬辰壬午辛卯辛巳辛未庚辰庚午',
+  '癸卯癸巳壬寅壬辰壬午辛卯辛巳庚寅庚辰庚午己卯己巳',
+  '壬寅壬辰辛丑辛卯辛巳庚寅庚辰己丑己卯己巳丁丑丁卯丁巳',
+  '辛丑辛卯庚子庚寅庚辰己丑己卯丁丑丁卯丙子丙寅丙辰',
+];
+const BAZHUAN = ['丁未', '己未', '庚申', '甲寅', '癸丑']; // 八專日 (卷五)
+const DE_NAMES = ['天德', '天德合', '月德', '月德合'];
+
+// the stars present on a day: the month branch index, the day pillar [stem, branch] and the day's 建除 officer name
+function starsOf(monthBranchIdx, [stem, branch], officerName, yearBranchIdx) {
+  const m = monthNumber(monthBranchIdx);
+  const d = BRANCH_CHARS.indexOf(branch);
+  const found = Object.entries(BRANCH_STAR).filter(([, at]) => at(m) === d).map(([name]) => name);
+  if (TIANYUAN[m - 1] === stem + branch) found.push('天願');
+  if (d !== monthBranchIdx && d % 4 === monthBranchIdx % 4) found.push('三合'); // the other two of the month's triad
+  if (STAR_SIX_HARMONY[monthBranchIdx] === d) found.push('六合');
+  if (d === wrap(monthBranchIdx + 6, 12)) found.push('月破'); // the day clashes the month
+  if (STAR_PUNISH[monthBranchIdx] === d) found.push('月刑');
+  if (SIFEI[Math.floor((m - 1) / 3)].includes(stem + branch)) found.push('四廢');
+  if (officerName === '平') found.push('平日');
+  if (officerName === '收') found.push('收日');
+  if (stem === '辛') found.push('辛日');
+  const season = Math.floor((m - 1) / 3);
+  const pillar = stem + branch;
+  if (MINRI[season] === branch) found.push('民日');
+  if (SIHAO[season] === pillar) found.push('四耗');
+  if (SIJI[season] === pillar) found.push('四忌');
+  if (SIQIONG[season] === pillar) found.push('四窮');
+  if (WUMU.some(([ms, p]) => ms.includes(m) && p === pillar)) found.push('五墓');
+  if (branch === '寅' || branch === '卯') found.push('五合');
+  if (d === monthBranchIdx) found.push('月建', '土府'); // 土府 is 月建 under another name (卷四)
+  if (d === wrap(monthBranchIdx + 1, 12)) found.push('吉期'); // 月建前一辰: forward by one, as the book counts 前
+  if (DINANG[m - 1].includes(pillar)) found.push('地囊');
+  if (TIANXI[season] === branch) found.push('天喜');
+  if (WANGRI[season] === branch) found.push('王日');
+  if (branch === '巳') found.push('巳日');
+  if (branch === '亥') found.push('亥日');
+  if (BUJIANG[m - 1].includes(pillar)) found.push('不將');
+  if (BAZHUAN.includes(pillar)) found.push('八專');
+  if (branch === '申' || branch === '酉') found.push('五離');
+  if (OFFICER_DAYS[officerName]) found.push(OFFICER_DAYS[officerName]);
+  if (yearBranchIdx !== undefined && d === wrap(yearBranchIdx + 6, 12)) found.push('大耗'); // 常居歲衝之地
+  if (TIANSHE[season] === stem + branch) found.push('天赦');
+  if (YUEEN[m - 1] === stem) found.push('月恩');
+  if (SIXIANG[season].includes(stem)) found.push('四相');
+  if (SHIDE[season] === branch) found.push('時德');
+  // 德 stars: the day stem (or branch, for a direction-style 天德) matches the month's position
+  DE_STARS[m - 1].forEach((at, i) => { if (at && (at === stem || at === branch)) found.push(DE_NAMES[i]); });
+  return found;
+}
+
+// activities: 宜 and 忌 stars from the book's 卷十一 用事 entry. pending ones have an entry in the book but their stars are not built yet.
+const ACTIVITIES = [
+  { id: 'brewing', cancels: true, cn: '醞釀', en: 'brewing wine', yi: ['天願', '三合', '六合', '五富'], ji: ['月破', '平日', '收日', '劫煞', '災煞', '月煞', '月刑', '月害', '月厭', '四廢', '辛日'] },
+  { id: 'opening', cancels: true, cn: '開市', en: 'opening a business', yi: ['天願', '民日', '滿日', '成日', '開日', '五富'], ji: ['月破', '大耗', '平日', '收日', '閉日', '劫煞', '災煞', '月煞', '月刑', '月害', '月厭', '大時', '天吏', '四耗', '四廢', '四窮', '五墓', '九空'] },
+  { id: 'contract', cancels: true, cn: '立券', en: 'signing a contract', yi: ['天願', '民日', '三合', '滿日', '六合', '五富', '五合'], ji: ['月破', '大耗', '平日', '收日', '劫煞', '災煞', '月煞', '月刑', '月害', '月厭', '大時', '天吏', '四耗', '四廢', '四窮', '五墓', '九空', '五離'] },
+  { id: 'moving', cn: '移徙', en: 'moving house', yi: ['天德', '月德', '天德合', '月德合', '天赦', '天願', '月恩', '四相', '時德', '民日', '驛馬', '天馬', '成日', '開日'], ji: ['月破', '平日', '收日', '閉日', '劫煞', '災煞', '月煞', '月刑', '月厭', '大時', '天吏', '四廢', '五墓', '歸忌', '往亡'] },
+  { id: 'travel', cn: '出行', en: 'travel', yi: ['天德', '月德', '天德合', '月德合', '天赦', '天願', '月恩', '四相', '時德', '王日', '驛馬', '天馬', '建日', '吉期', '天喜', '開日'], ji: ['月破', '平日', '收日', '閉日', '劫煞', '災煞', '月煞', '月刑', '月厭', '大時', '天吏', '天賊', '四廢', '五墓', '往亡', '巳日'] },
+  { id: 'groundbreaking', cn: '動土', en: 'breaking ground', yi: ['天德', '月德', '天德合', '月德合', '天赦', '天願', '月恩', '四相', '時德', '三合', '開日'], ji: ['月建', '土府', '月破', '平日', '收日', '閉日', '劫煞', '災煞', '月煞', '月刑', '月厭', '大時', '天吏', '四廢', '五墓', '土符', '地囊'] },
+  { id: 'wedding', cn: '嫁娶', en: 'wedding', yi: ['天德', '月德', '天德合', '月德合', '天赦', '天願', '三合', '天喜', '六合', '不將'], ji: ['月破', '平日', '收日', '閉日', '劫煞', '災煞', '月煞', '月刑', '月害', '月厭', '厭對', '大時', '天吏', '四廢', '四忌', '四窮', '五墓', '往亡', '八專', '亥日'] },
+];
+
+// simple rules (decided 2026-10-10, the book's six-grade weighing is not encoded):
+// 1. a hard 忌 (月破) is always avoid. 2. a 德 or 願 day cancels the soft 忌 stars (鋪註條例: 德合 赦 願 月恩 四相 時德 days are not marked 忌 for 醞釀).
+// 3. otherwise any 忌 is avoid, else any 宜 is suitable, else neutral. 4. a day with a star whose special cases are not encoded is unsure.
+const HARD = ['月破'];
+const CANCEL = ['天願', '天赦', '月恩', '四相', '時德', '天德', '月德', '天德合', '月德合'];
+const UNSURE = ['月厭']; // 月厭 has long special-pillar lists not encoded yet
+function evaluate(activity, stars) {
+  const yi = activity.yi.filter((s) => stars.includes(s));
+  const ji = activity.ji.filter((s) => stars.includes(s));
+  const cancelled = !!activity.cancels && CANCEL.some((c) => stars.includes(c)); // 卷十 line 492 names only 醞釀 開市 立劵 and a few others
+  const live = ji.filter((s) => HARD.includes(s) || !cancelled);
+  const unsure = ji.some((s) => UNSURE.includes(s)) && !live.some((s) => HARD.includes(s));
+  const verdict = live.some((s) => HARD.includes(s)) ? 'avoid' : unsure ? 'unsure' : live.length ? 'avoid' : yi.length ? 'suitable' : 'neutral';
+  return { yi, ji, verdict };
+}
+
 // assembles one day of the app's output for a date (YYYY-MM-DD) from bazi-logic (L) and the report-only logic (R).
 // the page and the test both build a day through this function, so they cannot drift apart.
 // pure apart from the clock's time zone: it reads local date parts. hour pillars are taken at 00:00, 02:00 ... 22:00 (one per branch).
@@ -1835,6 +2006,7 @@ function makeComputeDay(L, R) {
     const harm = L.getDayHarm(noon);
     const moon = L.getMoonPhase(noon);
     const naYin = L.getNaYin(day);
+    const officer = L.getDailyOfficer(noon);
     const hourPillars = R.BRANCHES.map((_, i) => {
       const t = new Date(y, m - 1, d, i * 2);
       return pair(L.getHourPillar(t, L.getDayStemIndex(t)));
@@ -1845,7 +2017,8 @@ function makeComputeDay(L, R) {
       term: L.getSolarTerm(noon),
       pillars: { year: pair(L.getYearPillar(noon)), month: pair(L.getMonthPillar(noon)), day: pair(day) },
       hourPillars,
-      officer: L.getDailyOfficer(noon),
+      officer,
+      stars: R.starsOf(L.getMonthBranchIndex(noon), [day.stem, day.branch], officer.name, R.BRANCHES.indexOf(L.getYearPillar(noon).branch)),
       sha: R.shaDirection(day.branch),
       mansion: R.mansion(iso),
       spirit: R.daySpirit(L.getMonthBranchIndex(noon), R.BRANCHES.indexOf(day.branch)),
@@ -1874,8 +2047,17 @@ const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return i
 // one day of the app's output for any date: the functions come from the inlined bazi-logic, soluna and the report-only logic
 const computeDay = makeComputeDay(
   { getDayPillar, getLunarDate, getDayZodiacRelations, getDayHarm, getMoonPhase, getNaYin, getHourPillar, getDayStemIndex, getYearPillar, getMonthPillar, getSolarTerm, getDailyOfficer, getHourRatings, getFestivals, getPengZu, getAuspiciousDirections, getMonthBranchIndex },
-  { BRANCHES, LUNAR_DAYS, LUNAR_MONTHS, mergeRelations, daySpirit, shaDirection, mansion },
+  { BRANCHES, LUNAR_DAYS, LUNAR_MONTHS, mergeRelations, daySpirit, shaDirection, mansion, starsOf },
 );
+const VERDICT_CLASS = { suitable: 'auspicious', neutral: 'neutral', avoid: 'inauspicious', unsure: 'neutral' };
+// signs a day is not good for: 冲 (clash) as chips, 害 刑 破 as a muted line; people whose year animal matches should pick another day
+const signsOf = (d) => {
+  const by = (k) => meta.animals.filter((_, i) => d.rels[i].includes(k));
+  const clash = by('clash').map((a) => `<span class="yj ji cjk">冲 ${esc(a.cn)} <small>${esc(a.en)}</small></span>`).join('');
+  const mild = ['harm', 'punish', 'break'].flatMap((k) => by(k).map((a) => `${meta.rel[k][0]} ${a.cn} ${a.en}`));
+  return `<span>${clash}</span>` + (mild.length ? `<span class="mut cjk"><small>milder: ${esc(mild.join(' · '))}</small></span>` : '');
+};
+const starChip = (k) => (s) => `<span class="yj ${k} cjk">${esc(s)}</span>`;
 const nowBranch = () => Math.floor((new Date().getHours() + 1) / 2) % 12;
 let cur = clampIso(todayIso); // the date shown, as YYYY-MM-DD
 let hourSel = null; // chosen hour branch; null = current hour on today, 子 on other days (as the app does)
@@ -1913,6 +2095,7 @@ function render() {
       <div class="card">${ct('宜', 'do')}<div>${info.yi.map(chip('yi')).join('')}</div></div>
       <div class="card">${ct('忌', 'avoid')}<div>${info.ji.map(chip('ji')).join('')}</div></div></div>
       <p class="mut">from the app: one list per daily officer. a full almanac also adds the stars, so its lists are longer and differ.</p>`),
+    sec('activities 擇日', ACTIVITIES.filter((a) => !a.pending).map((a) => { const ev = evaluate(a, d.stars); return `<div class="card"><div class="fest"><span class="cjk big">${esc(a.cn)}</span><span class="mut">${esc(a.en)}</span><span class="pill ${VERDICT_CLASS[ev.verdict]}">${ev.verdict}</span></div><div>${ev.yi.map(starChip('yi')).join('')}${ev.ji.map(starChip('ji')).join('')}</div></div>`; }).join('')),
     sec('clash', `<div class="card">${ct('冲煞', 'clash and evil direction')}<div class="big cjk">冲 ${esc(clash.cn)} <span class="mut">${esc(clash.en)}</span> &nbsp; 煞 ${esc(d.sha.cn)} <span class="mut">${esc(d.sha.en)}</span></div></div>`),
     sec('four pillars', `<div class="pillars">${pillarCard(d.pillars.year, 'year')}${pillarCard(d.pillars.month, 'month')}${pillarCard(d.pillars.day, 'day')}${pillarCard(d.hourPillars[hb], 'hour', true)}</div>`),
     sec('hours', `<div class="hours">${d.hours.map((h) => `<div class="hour${h.bi === hb ? ' now' : ''}" data-b="${h.bi}"><span class="cjk">${esc(h.name)}</span><span class="t">${String(h.start).padStart(2, '0')}:00</span><span class="pill ${h.rating}">${h.rating}</span>${h.tags.length ? `<span class="tag cjk">${esc(h.tags.join(' · '))}</span>` : ''}</div>`).join('')}</div><p class="mut">click an hour to see its pillar</p>`),
@@ -1942,12 +2125,14 @@ document.getElementById('pick').addEventListener('change', (e) => {
 });
 render();
 
-// tabs: almanac and bazi are separate features
+// tabs: almanac, life chart (bazi) and day finder are separate features
+function showTab(name) {
+  for (const b of document.querySelectorAll('[data-tab]')) b.classList.toggle('on', b.dataset.tab === name);
+  for (const n of ['almanac', 'bazi', 'finder']) document.getElementById('tab-' + n).hidden = n !== name;
+}
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]');
-  if (!t) return;
-  for (const b of document.querySelectorAll('[data-tab]')) b.classList.toggle('on', b === t);
-  for (const n of ['almanac', 'bazi']) document.getElementById('tab-' + n).hidden = n !== t.dataset.tab;
+  if (t) showTab(t.dataset.tab);
 });
 
 // life chart tab (bazi), for anyone's birth time: any birth date is possible, so soluna runs live in the page (inlined above, as solarToLunar)
@@ -2021,6 +2206,43 @@ document.getElementById('import').addEventListener('change', async (e) => {
   } catch { msg('could not read that file'); }
   e.target.value = '';
 });
+
+// day finder: pick an activity (a pill) and a range; list the days that suit it by the book's 宜 and 忌 stars
+let activityId = 'brewing';
+const finderFrom = document.getElementById('f-from');
+const finderDays = document.getElementById('f-days');
+finderFrom.value = clampIso(todayIso);
+function renderFinder() {
+  const act = ACTIVITIES.find((a) => a.id === activityId);
+  document.getElementById('pills').innerHTML = [...ACTIVITIES].sort((a, b) => a.en.localeCompare(b.en)).map((a) => `<button class="pill-btn${a.id === activityId ? ' on' : ''}" data-act="${a.id}"${a.pending ? ' disabled title="its stars are not built yet"' : ''}><span class="cjk">${esc(a.cn)}</span> ${esc(a.en)}${a.pending ? ' <small>soon</small>' : ''}</button>`).join('');
+  const start = clampIso(finderFrom.value || todayIso);
+  const found = [];
+  const unsure = [];
+  for (let k = 0; k < Number(finderDays.value); k++) {
+    const iso = addDays(start, k);
+    if (iso > RANGE.max) break;
+    const d = computeDay(iso);
+    const ev = evaluate(act, d.stars);
+    if (ev.verdict === 'suitable') found.push({ d, ev });
+    else if (ev.verdict === 'unsure') unsure.push(d);
+  }
+  const rows = found.map(({ d, ev }) => {
+    const wk = new Date(d.date + 'T12:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    return `<button class="card day-row" data-goto="${d.date}"><span class="big">${esc(wk)}</span><span class="cjk mut">${esc(d.lunar)} · ${esc(d.pillars.day.join(''))} · 建除 ${esc(d.officer.name)} · ${esc(d.spirit.cn)}</span><span>${ev.yi.map(starChip('yi')).join('')}</span>${signsOf(d)}</button>`;
+  }).join('');
+  document.getElementById('finder-out').innerHTML = sec(`${esc(act.cn)} ${esc(act.en)}: ${found.length} suitable days`, rows || '<p class="mut">no suitable day in this range</p>')
+    + (unsure.length ? sec(`unsure: ${unsure.length} days`, `<p class="mut">these days have a star whose special cases are not encoded yet: ${unsure.map((d) => d.date).join(', ')}</p>`) : '')
+    + `<p class="mut">rule from the book (欽定協紀辨方書, 卷十一): 宜 ${act.yi.join(' ')}; 忌 ${act.ji.join(' ')}. suitable: a 宜 star and no 忌 star (a 德 or 願 day cancels the soft 忌 stars; 月破 never cancels). click a day to open it in the almanac.</p>`;
+}
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest('[data-act]');
+  const go = e.target.closest('[data-goto]');
+  if (pill && !pill.disabled) { activityId = pill.dataset.act; renderFinder(); }
+  else if (go) { cur = go.dataset.goto; hourSel = null; render(); showTab('almanac'); }
+});
+finderFrom.addEventListener('change', renderFinder);
+finderDays.addEventListener('change', renderFinder);
+renderFinder();
 
 </script>
 </body>
