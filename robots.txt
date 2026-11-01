@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://theforestorigin.com/sitemap-index.xml
+Sitemap: https://www.theforestorigin.com/sitemap-index.xml
